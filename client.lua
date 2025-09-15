@@ -137,7 +137,6 @@ local check_server = coroutine.create(function()
 				if string.byte(inchr) == 10 then -- Submit, trim newline from print
 					io.write("\x1b[25;1H")
 					print("Command: " .. string.sub(cur_input, 1, string.len(cur_input) - 1))
-
 					parse_input(cur_input)
 					-- reset input: 
 					io.write("> ")

@@ -1,4 +1,4 @@
-local SKILLS = { -- skill_entry = { FIGHTER, 1 }
+SKILLS = { -- skill_entry = { FIGHTER, 1 }
 	FIGHTER 	= 1,
 	GRAPPLER 	= 2,
 	FENCER 		= 3,
@@ -12,8 +12,15 @@ local SKILLS = { -- skill_entry = { FIGHTER, 1 }
 	SAGE 		= 11
 }
 
-local LANGUAGES = { 
-	TRADE_COMMON = 1
+LANGUAGES = { 
+	TRADE_COMMON = 1, 
+	BARBARIC = 2,
+	OGRE = 3,
+	DRAKISH = 4,
+	ARCANA = 5, 
+	SYLVAN = 6, 
+	YOUMA = 7,
+	LIZARDMAN = 8
 }
 
 Character={} -- class Character
