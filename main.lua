@@ -3,6 +3,7 @@ local lg = love.graphics
 
 local enet = require "enet"
 local json = require "json"
+dofile("enums.lua")
 dofile("packets.lua")
 dofile("ansi.lua")
 dofile("uid.lua")
@@ -14,6 +15,7 @@ local server = host:connect("localhost:6789")
 
 USERNAME = "test"
 PASSWORD = "test"
+
 local last_ping = 0
 local delay = 0
 local my_uid = make_UID()
@@ -41,31 +43,59 @@ local draw_cursor_line = false
 local current_input = ''
 local cursor_pos_x = 0
 
-
 local local_enemies = { 
 	
 }
 
 
-
-function mud_print(txt)
-    
+function mud_print(txt, _color, _newline)
+    _color=_color or {1, 1, 1}
+    if _newline == false then _newline = 2 end 
+    if txt==nil then 
+        return 
+    end
     for i=1,#txt do
         local _c = string.sub(txt, i, i)
-        table.insert(text_buffer, { c = _c, x = current_col, y = current_line, r = {1.0, 1, 0.5}} )
-        current_col = current_col + 1
+        if _c == '\n' then 
+            current_line = current_line + 1
+            current_col = 0
+            if current_line > MAX_CHAR_HEIGHT then 
+                current_line = current_line - 1
+                for _i=MAX_CHAR_WIDTH,#text_screen do 
+                    text_screen[_i - MAX_CHAR_WIDTH] = text_screen[_i]
+                end
+                for _i=1,#text_buffer do 
+                    text_buffer[_i].y = text_buffer[_i].y - 1
+                end
+            end
+        elseif _c == '%' then 
+            -- special code 
+            if string.sub(txt, i, i+1) == '%r' then -- change color 
+                local _lr = string.sub(txt, i+2, i+4)
+                _color={tonumber(string.sub(_lr,1,1),16)/15,
+                    tonumber(string.sub(_lr,2,2),16)/15,
+                    tonumber(string.sub(_lr,3,3),16)/15}
+                txt = string.sub(txt, 1, i-1) .. string.sub(txt, i+4, #txt)
+                
+            end
+        else
+            table.insert(text_buffer, { c = _c, x = current_col, y = current_line, r = _color} )
+            current_col = current_col + 1
+        end
     end
     
-    current_col = 0
-    current_line = current_line + 1
-    
-    if current_line > MAX_CHAR_HEIGHT then 
-        current_line = current_line - 1
-        for _i=MAX_CHAR_WIDTH,#text_screen do 
-            text_screen[_i - MAX_CHAR_WIDTH] = text_screen[_i]
-        end
-        for _i=1,#text_buffer do 
-            text_buffer[_i].y = text_buffer[_i].y - 1
+    if _newline~=2 then 
+        current_col = 0
+        current_line = current_line + 1
+        
+        if current_line > MAX_CHAR_HEIGHT then 
+            current_line = current_line - 1
+            for _i=MAX_CHAR_WIDTH,#text_screen do 
+                text_screen[_i - MAX_CHAR_WIDTH] = text_screen[_i]
+            end
+            for _i=1,#text_buffer do 
+                text_buffer[_i].y = text_buffer[_i].y - 1
+            end
         end
     end
 end
@@ -79,18 +109,20 @@ function parse_input(f)
 
 	-- ATTACK COMMAND 
 	if string.find(f, "att") == 1 then 
-		p("ATTACKING")
 		tgt = ""
+        tgt_i = 0
 		for k,v in pairs(local_enemies) do 
 			for token in string.gmatch(f, "[^%s]+") do 
 				if tonumber(token) then 
 					tgt = local_enemies[tonumber(token)]
+                    tgt_i = tonumber(token)
 				else
 					if #token < 3 then 
 						p("Attack who?")
 						return 
 					end
 					if string.find(string.lower(v.name), token) then 
+                        tgt_i = k
 						tgt = v
 					else
 						tgt = nil 
@@ -102,20 +134,30 @@ function parse_input(f)
 			end
 		end
 		if tgt ~= nil then 
-			p(tgt.name)
+			--p(tgt.name)
+            p("You attack " .. tgt.name .. "!")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="ATTACK", loc=active_character.location, tgt=tgt_i})))
 		else
 			p("No target!")
 		end
 
 	-- LOOK COMMAND 
 	elseif string.find(f, "loo") == 1 or f == "l" then 
-		-- TODO PACKET FROM SERVER 
 		p("Looking around, you see:")
-		--for k,v in pairs(local_enemies) do 
-		--	p(k .. " " .. v.name)
-		--end
-        server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="LOOK"})))
-	end
+		server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="LOOK", loc=active_character.location})))
+	
+    -- SAY 
+    elseif string.find(f, "say ") == 1 or string.sub(f, 1, 2) == "\"" then 
+        local d = ""
+        if string.find(f, "say ") == 1 then 
+            d = string.sub(f, 5, #f)
+        else -- "
+            d = string.sub(f, 2, #f)
+        end
+        p("You say, \"" .. d .. "\"")
+        server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
+
+    end
 end
 
 --
@@ -123,8 +165,9 @@ end
 function process_packet(e)
 	-- e = event object 
 	local pak = json.decode(e.data)
+
 	if pak.type == "CHARACTER_DAT" then 
-		p("new character data received")
+		p("new character data received", {1, 0.2, 0.2})
 		active_character = Character:new({})
 		active_character.from_blob(pak.character)
 		p(active_character.name)
@@ -135,7 +178,23 @@ function process_packet(e)
 		p("INT   " .. active_character.int)
 		p("SPI   " .. active_character.spi)
 		p("")
-	end
+        
+    elseif pak.type == "ROOM" then 
+        p("-[" .. pak.name .. "]-", {1,1,0.5})
+        p(pak.desc)
+        p("You also see:")
+        for k,v in pairs(pak.mobs) do 
+            p(k .. " " .. v)
+            local_enemies[k] = { name = "" }
+            local_enemies[k].name = v 
+        end
+
+    elseif pak.type == "MESSAGE_COMBAT" then 
+        p(pak.msg)
+        -- for each character, process any codes etc before adding directly to print queue
+    else
+        print(pak.type)
+    end
 end
 
 
@@ -162,7 +221,8 @@ function love.update(dt)
 		e = host:service()
 		if e then
 			if e.type == "connect" then -- We connected, first event
-				p("Connected: " .. e.peer:connect_id())
+				p("Connected: ", {0.5,1,0.5}, false)
+                p(tostring(e.peer:connect_id()))
 				login = LoginPacket:new({uid=my_uid, login=USERNAME, pass=PASSWORD})
 				e.peer:send(json.encode(login))
 			elseif e.type == "receive" then -- Standard msg event 
@@ -184,6 +244,7 @@ function love.update(dt)
             for y=0,24 do
                 for x=0,80 do 
                     if(text_screen[(y*80)+x] ~= nil) then 
+                        lg.setColor(text_screen[(y*80)+x][2])
                         lg.print(text_screen[(y*80)+x], x * 8, y * 16)
                     end
                 end
@@ -229,6 +290,16 @@ function love.keypressed(key, scancode, isrepeat)
     if #scancode == 1 then 
         if IS_SHIFT then 
             scancode = scancode:upper()
+            if scancode == '1' then scancode = '!'
+            elseif scancode=='2'then scancode='\"'
+            elseif scancode=='3'then scancode='#'
+            elseif scancode=='4'then scancode='$'
+            elseif scancode=='5'then scancode='%'
+            elseif scancode=='6'then scancode='&'
+            elseif scancode=='7'then scancode='\''
+            elseif scancode=='8'then scancode='('
+            elseif scancode=='9'then scancode=')'
+            elseif scancode=='/'then scancode='?'end
         end
         current_input = current_input .. scancode
     end

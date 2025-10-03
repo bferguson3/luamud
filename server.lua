@@ -1,86 +1,52 @@
 require "enet" 
 local json = require "json"
+dofile("enums.lua")
 dofile("packets.lua")
 dofile("ansi.lua")
-ELEMENTS = { 
-	None = 0,
-	Physical = 1,
-	Fire = 2, 
-	Magic = 3, 
-	Wind = 4,
-	Earth = 5,
-	Energy = 6,
-	Slashing = 7,
-	Silver = 8,
-	Ice = 9,
-	Bludgeon = 10,
-	Lightning = 11
-}
-ITEMTYPE = { 
-	Recovery = 1,
-	Treasure = 2,
-	Equipment = 3
-}
-ALCHEMY_COLORS = { 
-	White = 1,
-	Gold = 2,
-	Black = 3,
-	Red = 4
-}
-RANK = { 
-	C = 1,
-	B = 2,
-	A = 3,
-	S = 4
-}
-
-Item={}
-function Item:new(o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self 
-    -- 
-	o.name = o.name or "ItemName"
-	o.type = o.type or ITEMTYPE.Treasure
-	o.desc = o.desc or "A piece of treasure for selling."
-	o.worth = o.worth or 10 -- in g 
-	o.alchemy_color = o.alchemy_color or { ALCHEMY_COLORS.White }
-	o.alchemy_rank = o.alchemy_rank or RANK.C
-	return o 
-end
-local Treasure_DB = {}
-Treasure_DB.Beautiful_Feathers = Item.new( {name="Beautiful Feathers", worth=30, alchemy_color={ALCHEMY_COLORS.Gold, ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
-Treasure_DB.Big_Horn = Item.new( {name="Big Horn", worth=100, alchemy_color={ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
-LootTable={}
-function LootTable:new(o)
-    local o = o or {}
-    setmetatable(o, self)
-    self.__index = self 
-    -- 
-	o.treasure = o.treasure or { 
-		[0] =  -- 0 = always 
-			nil,--Treasure_DB.Beautiful_Feathers,
-		[4] = nil, -- 2-4
-			-- Nothing
-		[10] = -- 5-10
-			nil,--Treasure_DB.Big_Horn,
-		[12] =  -- 11+
-			Item.new({name="Bag of Silver", worth=10*roll()})
-	}
-	return o 
-end
+dofile("item.lua")
 dofile("c_client.lua")
 dofile("c_character.lua")
 dofile("roll.lua")
 dofile("monster.lua")
+dofile("location.lua")
 
 character_db = {}
 active_clients = {}
 
 math.randomseed(os.clock())
 
--- test:
-newchar = Character:new({skill = 9, a = 6, b = 4})
+GAME_MAP={}
+-- test loc 
+dofile("scenario.lua")
+
+-- Start server:
+print("Opening LUAMUD server on 6789...")
+local host = enet.host_create("localhost:6789")
+print("OK.")
+
+local second_timer = os.clock()
+local second_timer_2 = os.clock()
+local last_queue_time = os.clock()
+local SEED_TIMER = 30
+local PRUNE_TIMER = 60*10
+local EVT_QUEUE_LEN = 5
+local event_queue={}
+local login_count = 0
+local next_queue = 1
+
+ACTIONS = { 
+	STD_ATTACK = 1
+}
+-- EVENT QUEUE TYPES: 
+-- "PROCESS COMBAT ROUND"
+-- -- src, tgt, action, type 
+
+
+function get_mod(n)
+	n = n - (n % 6) -- cut off remainder 
+	n = n / 6
+	return math.floor(n)
+end
 
 function process_login(p)
 	print("Login request from UID " .. p.uid .. " (" .. p.login, p.pass, ")")
@@ -90,34 +56,72 @@ function process_login(p)
 	return false 
 end
 
--- Start server:
-print("Opening LUAMUD server on 6789...")
-local host = enet.host_create("localhost:6789")
-print("OK.")
 
-local second_timer = os.clock()
-local second_timer_2 = os.clock()
-local SEED_TIMER = 30
-local PRUNE_TIMER = 60*10
-local login_count = 0
+function process_event_queues()
+	local _elapsed = os.clock() - last_queue_time
+
+	for i=1,#event_queue do 
+		event_queue[i].timer = event_queue[i].timer - _elapsed 
+		local evt = event_queue[i]
+		if event_queue[i].timer <= 0 then 
+			if(active_clients[evt.src])then
+				-- perform event 
+				if evt.type == "combat_round" then 
+				-- COMBAT EVENT 
+				-- 
+					-- src, tgt, action 
+					local _char = active_clients[evt.src].current_character
+					local _enm = GAME_MAP[_char.location].active_mobs[evt.tgt]
+					if(evt.action == ACTIONS.STD_ATTACK)then 
+					-- NORMAL ATTACK EVT 
+					-- 
+						-- resolve 
+						print("attack of " .. evt.src .. " vs " .. evt.tgt)
+						process_attack(_char, _enm, evt.src)
+						-- re-initiative: 
+						event_queue[i].timer = 7 - get_mod(_char.agi) -- 7 seconds minus agi/6 (30 max)
+					end
+					-- do not delete until enemy is dead/nil
+					if(_enm == nil)then event_queue[i]=nil end 
+				end
+				-- and delete it if not needed 
+				--event_queue[i] = nil 
+			else 
+				-- the client must have logged out 
+				event_queue[i] = nil 
+			end
+		end
+	end
+	last_queue_time = os.clock()
+end
+
+function process_attack(_char, _enm, evt)
+	local _rl = roll(2, 6, 0)
+	local _lvmod = _char.get_level(SKILLS.FIGHTER)
+	local _dxmod = get_mod(_char.dex) -- TODO: weapon accuracy , additional dmg, crit range 
+	local _t = tot(_rl) + _lvmod + _dxmod
+	print("Rolled " .. _t .. " (" .. _rl[1] .. ", " .. _rl[2] .. "+" .. tostring(_lvmod+_dxmod) .. ")")
+	if _t >= _enm.evade then 
+		print("Hit!!")
+		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="You %rf99strike %rfffthe %r0f2" .. _enm.name .. "%rfff!"})))
+	else 
+		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="A whiff!!"})))
+	end
+	
+end
 
 
---results = { 0, 0, 0, 0, 0, 0 }
---for i=1,100000000 do -- 100mil rolls
---	_r = roll(1, 6)
---	results[_r] = results[_r] + 1
---end
---for k=1,6 do 
---	print(results[k])
---end
-
+--
+-- MAIN SERVER LOOP
+--
 while 1 do
 	-- Timer stuff 
+	-- Reseed the math seed every n seconds
 	if os.clock() > (second_timer + SEED_TIMER) then 
 		math.randomseed(os.clock())
 		second_timer = os.clock()
-		--print("Seeded")
 	end
+	-- Prune clients that have not done anything
 	if os.clock() > (second_timer_2 + PRUNE_TIMER) then 
 		for k,v in pairs(active_clients) do 
 			print(k,v)
@@ -129,6 +133,10 @@ while 1 do
 		second_timer_2 = os.clock()
 	end
 
+	-- Main "events" loop for combat timings etc 
+	process_event_queues()
+
+
 	-- get any queued packets 
 	local e = host:service() 
 	if e then
@@ -138,40 +146,76 @@ while 1 do
 			print("GET: ", pak.type, e.peer) -- log it 
 
 			if pak.type == "LOGIN" then  -- is it a LOGIN request?
+			-- LOGIN PACKET TYPE 
+			-- 
 				if process_login(pak) then  -- if true, pass OK 
-					--e.peer:send("LOGIN OK ")
-					--table.insert(active_clients, Client:new( { uid=pak.uid, login=pak.login, last_active=os.clock() } ))
-					active_clients[pak.uid] = Client:new( { login=pak.login, last_active=os.clock() })
+					active_clients[pak.uid] = Client:new( { login=pak.login, last_active=os.clock(), peer=e.peer })
 					login_count = login_count + 1
 					print("Current est no. of users: " .. login_count)
-					
-					-- perform SQL query here to pull characters into character_db ?
-					-- TODO FIXME
+					-- -- TODO FIXME perform SQL query here to pull characters into character_db ?
 					-- for now make a new random 
-					_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=roll(2), b=roll(2), c=roll(2), d=roll(2), e=roll(2), f=roll(2), name="Test" } )
+					_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Test" } )
+					_new.location = 1 -- TEMP TEST! ==GAME_MAP[1]
+					active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
+					table.insert(GAME_MAP[1].current_players, pak.uid)
 					e.peer:send(json.encode(_new.to_blob()))
+					e.peer:send(json.encode(GAME_MAP[_new.location].make_packet()))
 				else 
 					print("Login failed for user ", e.peer)
 				end
+
 			elseif pak.type == "COMMAND" then 
-				if active_clients[pak.uid] then 
-					-- We are logged in, cmd execute OK 
+			-- COMMAND PACKET TYPE 
+			-- 
+				if active_clients[pak.uid] then -- We are logged in, cmd execute OK 
+					active_clients[pak.uid].last_active = os.clock() -- update time 
+					local _char = active_clients[pak.uid].current_character 
 					print("user " .. active_clients[pak.uid].login .. " used command " .. pak.cmd)
+
 					if pak.cmd == "LOOK" then 
-						
+					-- LOOK COMMAND 
+						-- take "loc" and use it as the index 
+						e.peer:send(json.encode(GAME_MAP[pak.loc].make_packet()))
+
+					elseif pak.cmd == "ATTACK" then 
+					-- ATTACK COMMAND 
+						-- loc is game map index -- tgt is enemy index 
+						print(_char.name .. " engages " .. GAME_MAP[pak.loc].active_mobs[pak.tgt].name .. "!")
+						_char.state = STATE.IN_COMBAT
+						table.insert(event_queue, { type="combat_round", src=pak.uid, tgt=pak.tgt, action=ACTIONS.STD_ATTACK, timer=1 } )
+
+					else 
+					-- ??? 
+						for k,v in pairs(pak) do 
+							print(k,v)
+						end
+
 					end
 				else 
 					print("error: user " .. pak.uid .. " not logged in, but tried command " .. pak.cmd)
 				end
+
 			elseif pak.type == "LOGOUT" then 
+			-- LOGOUT PACKET TYPE 
+			-- 
+				-- pop uid from game map 
+				local _t = GAME_MAP[active_clients[pak.uid].current_character.location].current_players
+				for i=1,#_t do 
+					if _t[i] == pak.uid then 
+						table.remove(_t, i)
+						break 
+					end
+				end
 				active_clients[pak.uid] = nil -- std hashmap erase 
 				login_count = login_count - 1
 			end
+
 		elseif e.type == "disconnect" then 
 			--
+			
 		else
 			print("Unhandled packet type: " .. e.type)
+
 		end
 	end
 end
-

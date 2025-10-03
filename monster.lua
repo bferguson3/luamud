@@ -1,20 +1,4 @@
 
-INTELLIGENCE = { 
-	Low = 1,
-	Average = 2,
-	High = 3
-}
-
-PERCEPTION = { 
-	Normal = 1,
-	Darkvision = 2
-}
-
-DISPOSITION = { 
-	Neutral = 1,
-	Hostile = 2
-}
-
 Monster={}
 function Monster:new(o)
     local o = o or {}
@@ -46,21 +30,64 @@ function Monster:new(o)
 	o.skills = o.skills or { }
 	o.loot = o.loot or LootTable:new({})
     o.desc = o.desc or "A monster description"
+
+	o.copy = function()
+		local c = {}
+		c.name=o.name 
+		c.lv=o.lv 
+		c.type=o.type
+		c.int=o.int
+		c.perception=o.perception
+		c.soulscars=o.soulscars
+		c.language={}
+		for i=1,#o.language do 
+			c.language[i]=o.language[i]
+		end
+		c.tgt_rep=o.tgt_rep
+		c.tgt_wk=o.tgt_wk
+		c.weakness={}
+		c.weakness[1]=o.weakness[1]
+		c.weakness[2]=o.weakness[2]
+		c.initiative=o.initiative
+		c.move=o.move
+		c.fort=o.fort
+		c.will=o.will
+		c.acc=o.acc
+		c.dmg={}
+		c.dmg[1]=o.dmg[1]
+		c.dmg[2]=o.dmg[2]
+		c.dmg[3]=o.dmg[3]
+		c.evade=o.evade
+		c.def=o.def
+		c.hp=o.hp
+		c.cur_hp=o.cur_hp
+		c.mp=o.mp
+		c.cur_mp=o.cur_mp
+		c.skills=o.skills -- this table alone is a ptr, should be fine
+		c.loot={}
+		for i=1,#o.loot do 
+			c.loot[i]=o.loot[i].copy()
+		end
+		c.desc=o.desc
+		return c 
+	end
+
     return o
 end
 
 
-local Monster_DB = {}
+Monster_DB = {}
 Monster_DB.Goblin = Monster.new( { name="Goblin", 
 	perception=PERCEPTION.Darkvision, 
-	language={LANGUAGES.TRADE_COMMON, LANGUAGES.BARBARIC},
+	language={LANGUAGES.BARBARIC},
 	weakness={ELEMENTS.Magic, 2},
-	initiative=11,
+    lv=2,
+	initiative=11, -- spd = (7 - get_mod(monster.initiative))
 	fort=3,
 	will=3,
-	acc=3,
+	acc=10,
 	dmg={2,6,2},
-	evade=3,
+	evade=10,
 	def=2,
 	hp=16,
 	mp=12,

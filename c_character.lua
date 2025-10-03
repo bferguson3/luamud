@@ -1,26 +1,7 @@
-SKILLS = { -- skill_entry = { FIGHTER, 1 }
-	FIGHTER 	= 1,
-	GRAPPLER 	= 2,
-	FENCER 		= 3,
-	SHOOTER 	= 4,
-	SORCERER 	= 5,
-	CONJURER 	= 6,
-	MAGITECH 	= 7,
-	PRIEST 		= 8,
-	RANGER 		= 9,
-	SCOUT 		= 10,
-	SAGE 		= 11
-}
 
-LANGUAGES = { 
-	TRADE_COMMON = 1, 
-	BARBARIC = 2,
-	OGRE = 3,
-	DRAKISH = 4,
-	ARCANA = 5, 
-	SYLVAN = 6, 
-	YOUMA = 7,
-	LIZARDMAN = 8
+STATE = { 
+	NONE = 0,
+	IN_COMBAT = 1
 }
 
 Character={} -- class Character
@@ -76,6 +57,26 @@ function Character:new(o)
 	o.gender = o.gender or "" -- string
 	o.age = o.age or 15
 
+	o.location = o.location or nil -- by index!
+
+	o.state = STATE.NONE
+
+	-- BY INDEX!
+	o.inventory = o.inventory or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
+	o.eqp_weapon = o.eqp_weapon or 1 -- Equipment_DB[1]
+	o.eqp_armor = o.eqp_armor or nil 
+	o.eqp_shield = o.eqp_shield or nil 
+	o.eqp_accessory = o.eqp_accessory or { 0,0,0,0,0,0,0,0,0 }
+
+	o.get_level = function(sk)
+		for i=1,#o.skills do
+			if o.skills[i][1] == sk then
+				return o.skills[i][2]
+			end
+		end
+		return 0
+	end	
+
 	o.to_blob = function()
 		local _me = {}
 		_me.name = o.name 
@@ -103,6 +104,16 @@ function Character:new(o)
 		_me.scars = o.scars 
 		_me.gender = o.gender 
 		_me.age = o.age 
+		_me.location = o.location
+		_me.inventory = {}
+		for i=1,10 do 
+			_me.inventory[i] = {o.inventory[i][1],o.inventory[i][2]}
+		end
+		_me.eqp_weapon = o.eqp_weapon 
+		_me.eqp_armor = o.eqp_armor 
+		_me.eqp_shield = o.eqp_shield 
+		_me.eqp_accessory = o.eqp_accessory 
+		_me.state = o.state 
 		return { character = _me, type="CHARACTER_DAT" } 
 	end
 	o.from_blob = function(b)
@@ -131,6 +142,16 @@ function Character:new(o)
 		o.scars = b.scars 
 		o.gender = b.gender 
 		o.age = b.age 
+		o.location = b.location
+		o.inventory = {}
+		for i=1,10 do 
+			o.inventory[i] = { b.inventory[i][1],b.inventory[i][2] }
+		end
+		o.eqp_weapon = b.eqp_weapon 
+		o.eqp_armor = b.eqp_armor 
+		o.eqp_shield = b.eqp_shield 
+		o.eqp_accessory = b.eqp_accessory 
+		o.state = b.state 
 	end
 	return o 
 end
