@@ -7,7 +7,8 @@ function Client:new(o)
 	o.uid = o.uid or "INVALID" -- str
 	o.login = o.login or "MISSING" -- str 
 	o.current_character = o.current_character or nil 
-	o.peer = o.peer or ""
+	o.peer = o.peer or nil
+	o.last_active = o.last_active or 0 
 	-- current_character is a pointer to the entry in character_db 
 	return o
 end

@@ -22,7 +22,7 @@ dofile("scenario.lua")
 
 -- Start server:
 print("Opening LUAMUD server on 6789...")
-local host = enet.host_create("localhost:6789")
+local host = enet.host_create("*:6789")
 print("OK.")
 
 local second_timer = os.clock()
@@ -59,6 +59,7 @@ end
 
 function send_to_room(_ri, _s)
 	for i=1,#GAME_MAP[_ri].current_players do 
+		print(active_clients[GAME_MAP[_ri].current_players[i]].peer)
 		active_clients[GAME_MAP[_ri].current_players[i]].peer:send(json.encode(MessagePacket:new({msg=_s})))
 	end
 end
@@ -66,7 +67,8 @@ end
 
 function process_event_queues()
 	local _elapsed = os.clock() - last_queue_time
-
+	if(_elapsed < 0.1)then os.execute('sleep ' .. 0.1-_elapsed) end
+	_elapsed = 0.1
 	for i=1,#event_queue do 
 		if event_queue[i] ~= nil then 
 			event_queue[i].timer = event_queue[i].timer - _elapsed 
@@ -86,13 +88,14 @@ function process_event_queues()
 							-- resolve 
 							print("attack of " .. evt.src .. " vs " .. _enm.name)
 							process_attack(_char, _enm, evt.src)
+
 							-- Death resolve part 2: 
 							if _enm.cur_hp <= 0 then 
 								-- broadcast to entire room 
 								send_to_room(_char.location, _enm.name .. " %rfaaperished%rfff!!")
 								
-								active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. MOB_XP[_enm.lv] .. " experience."})))
-								active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]
+								active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
+								active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
 								
 								table.remove(GAME_MAP[_char.location].active_mobs, evt.tgt) -- erase em 
 								_enm = nil 
@@ -297,7 +300,7 @@ while 1 do
 					print("Current est no. of users: " .. login_count)
 					-- -- TODO FIXME perform SQL query here to pull characters into character_db ?
 					-- for now make a new random 
-					_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Test" } )
+					_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
 					_new.location = 1 -- TEMP TEST! ==GAME_MAP[1]
 					active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
 					table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
@@ -313,7 +316,7 @@ while 1 do
 				if active_clients[pak.uid] then -- We are logged in, cmd execute OK 
 					active_clients[pak.uid].last_active = os.clock() -- update time 
 					local _char = active_clients[pak.uid].current_character 
-					print("user " .. active_clients[pak.uid].login .. " used command " .. pak.cmd)
+					print("user " , active_clients[pak.uid].peer , " used command " .. pak.cmd)
 
 					if pak.cmd == "LOOK" then 
 					-- LOOK COMMAND 

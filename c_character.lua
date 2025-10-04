@@ -16,7 +16,7 @@ function Character:new(o)
 	o.user = o.user or "None"
 	o.name = o.name or "None"
 	o.alv = o.alv or 0 -- derive this too
-	o.skills = o.skills or { { SKILLS.FIGHTER, 1 } } -- normal table
+	o.classes = o.classes or { { SKILLS.FIGHTER, 1 } } -- normal table
 	-- attributes and modifiers are derived from the below:
 	o.race = o.race or "None"
 	o.a = o.a or 0
@@ -41,7 +41,7 @@ function Character:new(o)
 		o.vit = o.body  + o.d + o.growth[4]
 		o.int = o.mind  + o.e + o.growth[5]
 		o.spi = o.mind  + o.f + o.growth[6]
-		for s,v in ipairs(o.skills) do 			-- adventure level 
+		for s,v in ipairs(o.classes) do 			-- adventure level 
 			if v[2] > o.alv then o.alv = v[2] end 
 		end
 	end 
@@ -59,24 +59,26 @@ function Character:new(o)
 	o.gender = o.gender or "" -- string
 	o.age = o.age or 15
 
-	o.location = o.location or nil -- by index!
+	o.location = o.location or 0 -- by index!
 
 	o.state = o.state or STATE.NONE
 
-	-- BY INDEX!
+	-- inventory (aka loot) by PTR
 	o.inventory = o.inventory or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
-
+	-- eqp always by index 
+	o.eqp_bag = o.eqp_bag or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
+	-- BY INDEX!
 	o.eqp_weapon = o.eqp_weapon or 1 -- Equipment_DB[1]
-	o.eqp_armor = o.eqp_armor or nil 
-	o.eqp_shield = o.eqp_shield or nil 
+	o.eqp_armor = o.eqp_armor or 0 
+	o.eqp_shield = o.eqp_shield or 0 
 	o.eqp_accessory = o.eqp_accessory or { 0,0,0,0,0,0,0,0,0 }
 
 	o.experience = o.experience or 0 
 
 	o.get_level = function(sk)
-		for i=1,#o.skills do
-			if o.skills[i][1] == sk then
-				return o.skills[i][2]
+		for i=1,#o.classes do
+			if o.classes[i][1] == sk then
+				return o.classes[i][2]
 			end
 		end
 		return 0
@@ -86,7 +88,7 @@ function Character:new(o)
 		local _me = {}
 		_me.name = o.name 
 		_me.alv = o.alv 
-		_me.skills = o.skills 
+		_me.classes = o.classes -- should be OK to ref like this 
 		_me.skill = o.skill 
 		_me.body = o.body 
 		_me.mind = o.mind 
@@ -112,7 +114,19 @@ function Character:new(o)
 		_me.location = o.location
 		_me.inventory = {}
 		for i=1,10 do 
-			_me.inventory[i] = {o.inventory[i][1],o.inventory[i][2]}
+			if o.inventory[i][1]~=0 then 
+				_me.inventory[i] = {o.inventory[i][1].name, o.inventory[i][2]}
+			else 
+				_me.inventory[i] = { 0, 0 }
+			end
+		end
+		_me.eqp_bag = {}
+		for i=1,10 do 
+			if o.eqp_bag[i][1] ~= 0 then 
+				_me.eqp_bag[i] = { o.eqp_bag[i][1].name, o.eqp_bag[i][2] }
+			else 
+				_me.eqp_bag[i] = { 0, 0}
+			end
 		end
 		_me.eqp_weapon = o.eqp_weapon 
 		_me.eqp_armor = o.eqp_armor 
@@ -122,10 +136,10 @@ function Character:new(o)
 		_me.experience = o.experience 
 		return { character = _me, type="CHARACTER_DAT" } 
 	end
-	o.from_blob = function(b)
+	o.from_blob = function(b) -- this is only used on the CLIENT. 
 		o.name = b.name 
 		o.alv = b.alv 
-		o.skills = b.skills 
+		o.classes = b.classes 
 		o.skill = b.skill 
 		o.body = b.body 
 		o.mind = b.mind 
@@ -152,6 +166,10 @@ function Character:new(o)
 		o.inventory = {}
 		for i=1,10 do 
 			o.inventory[i] = { b.inventory[i][1],b.inventory[i][2] }
+		end
+		o.eqp_bag = {}
+		for i=1,10 do 
+			o.eqp_bag[i] = { b.eqp_bag[i][1],b.eqp_bag[i][2] }
 		end
 		o.eqp_weapon = b.eqp_weapon 
 		o.eqp_armor = b.eqp_armor 

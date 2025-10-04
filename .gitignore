@@ -1,4 +1,5 @@
 *.so
 dist/
-luamud/
-luamud.exe
+client/
+*.exe
+dist.zip

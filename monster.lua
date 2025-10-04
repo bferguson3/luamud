@@ -1,4 +1,61 @@
-MOB_XP={25,
+MOB_XP={
+83, -- 12
+90, -- 11 
+107, -- 14
+115, -- 13
+133, -- 15
+156, -- 16 
+176, -- 17
+222, -- 18 
+263, -- 19 
+300, -- 20 
+357, -- 21
+409, -- 22
+456, -- 23
+500, -- 24
+540 -- 25
+} -- 270 kills to max lv in 1 classs
+
+-- mob xp = (req xp tnl)/(20+[5*lv])
+
+
+CHAR_XP_TABLE_MAIN={
+	1000, -- 1.0
+	1000, -- 1.0
+	1500, -- 1.5
+	1500, -- 1.5
+	2000, -- 2.0
+	2500, -- 2.5 
+	3000, -- 3.0
+	4000, -- 4.0 
+	5000, -- 5.0 
+	6000, -- 6.0
+	7500, -- 7.5
+	9000, -- 9.0
+	10500, -- 10.5
+	12000, -- 12.0
+	13500  -- 13.5
+}
+
+CHAR_XP_TABLE_SUB={
+	500,
+	1000,
+	1000,
+	1500,
+	1500,
+	2000,
+	2500,
+	3000,
+	4000,
+	5000,
+	6000,
+	7500,
+	9000,
+	10500,
+	12000
+}
+
+OLD_MOB_XP={25,
 50,
 112,
 150,
@@ -107,11 +164,11 @@ Monster_DB.Goblin = Monster:new( { name="Goblin",
 	hp=16,
 	mp=12,
 	loot={nil,nil,
-		Treasure_DB.Crude_Weapon,
+		Treasure_DB[TREASURES.Crude_Weapon],
 		nil,nil,nil,nil,nil,
-		Treasure_DB.Weapon,
+		Treasure_DB[TREASURES.Weapon],
 		nil,nil,
-		Treasure_DB.HQWeapon
+		Treasure_DB[TREASURES.HQWeapon]
 	},
 	desc="A green-skinned, scantily-clad barbarous."
 })

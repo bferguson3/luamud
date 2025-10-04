@@ -34,6 +34,7 @@ function Equipment:new(o)
 	o.name = o.name or "Knife"
 	o.stance = o.stance or STANCES.ONEHAND
 	o.acc = o.acc or 0 
+	o.rank = o.rank or "B"
 	o.power = o.power or 1 
 	o.crit = o.crit or 10 
 	o.add = o.add or 0 
@@ -52,20 +53,11 @@ function Equipment:new(o)
 		c.price = o.price 
 		c.other = o.other 
 		c.desc = o.desc  
+		c.rank = o.rank 
 		return c
 	end
 	return o 
 end
-
-Equipment_DB = {}
-Equipment_DB[EQUIPMENT.Knife] = Equipment:new({}) -- Knife = 1
-
-Treasure_DB = {}
-Treasure_DB.Beautiful_Feathers = Item:new( {name="Beautiful Feathers", worth=30, alchemy_color={ALCHEMY_COLORS.Gold, ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
-Treasure_DB.Big_Horn = Item:new( {name="Big Horn", worth=100, alchemy_color={ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
-Treasure_DB.Crude_Weapon = Item:new({name="Crude Weapon",worth=10,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White},alchemy_rank=RANK.B})
-Treasure_DB.Weapon = Item:new({name="Weapon",worth=30,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White},alchemy_rank=RANK.B})
-Treasure_DB.HQWeapon = Item:new({name="High-Quality Weapon",worth=150,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White},alchemy_rank=RANK.A})
 
 LootTable={}
 function LootTable:new(o)
@@ -84,3 +76,5 @@ function LootTable:new(o)
 	}
 	return o 
 end
+
+dofile("item_db.lua")

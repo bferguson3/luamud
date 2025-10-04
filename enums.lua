@@ -90,7 +90,3 @@ DISPOSITION = {
 	Hostile = 2
 }
 
-
-EQUIPMENT = { 
-	Knife = 1
-}

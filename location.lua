@@ -33,12 +33,10 @@ function Location:new(o)
 		p.mobs={}
 		p.current_players={}
 		for i=1,#o.current_players do 
-			p.current_players[i]=o.current_players[i].name
+			table.insert(p.current_players, active_clients[o.current_players[i]].current_character.name)
 		end
 		for i=1,#o.active_mobs do 
-			if(o.active_mobs[i] ~= nil)then
-				p.mobs[i]=o.active_mobs[i].name -- names only 
-			end
+			p.mobs[i]=o.active_mobs[i].name -- names only 
 		end
 		p.exits={}
 		for i=1,#o.exits do 

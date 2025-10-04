@@ -5,12 +5,13 @@ dofile = love.filesystem.load
 local enet = require "enet"
 local json = require "json"
 local bit = require "bit"
+--local tick = require 'tick'
 dofile("enums.lua")()
 dofile("packets.lua")()
 dofile("ansi.lua")()
 dofile("uid.lua")()
 dofile("c_character.lua")()
-
+dofile("item.lua")()
 local host = enet.host_create()
 local server = host:connect("localhost:6789")
 
@@ -25,7 +26,7 @@ local active_character = nil
 local text_canvas = nil 
 
 -- SCREEN mud_print STUFF
-local TEXT_SPD = 2
+local TEXT_SPD = 10
 local current_line = 0
 local MAX_CHAR_WIDTH = 80
 local MAX_CHAR_HEIGHT = 24
@@ -188,8 +189,13 @@ function process_packet(e)
             local_enemies[k] = { name = "" }
             local_enemies[k].name = v 
         end
+        for k,v in pairs(pak.current_players)do
+            if(v ~= active_character.name)then
+                p(v .. " %rafa(Player)")
+            end
+        end
 
-    elseif pak.type == "MESSAGE_COMBAT" then 
+    elseif pak.type == "MESSAGE_COMBAT" then    
         p(pak.msg)
         -- for each character, process any codes etc before adding directly to print queue
     else
@@ -199,7 +205,6 @@ end
 
 
 function love.load()
-
     font = lg.newFont(8)
 
     text_canvas = lg.newCanvas(640, 400)
@@ -212,54 +217,62 @@ function love.load()
 
 end
 
+local update_canvas = true
+local fps_ctr = 0
 function love.update(dt)
-        local e = nil 
+    if(dt < 1/30) then love.timer.sleep((1/30) - dt) end
 
-        txt_blink_ctr = txt_blink_ctr + dt
+    local e = nil 
 
-        -- CHECK SERVER 
-		e = host:service()
-		if e then
-			if e.type == "connect" then -- We connected, first event
-				p("Connected: ", {0.5,1,0.5}, false)
-                p(tostring(e.peer:connect_id()))
-				login = LoginPacket:new({uid=my_uid, login=USERNAME, pass=PASSWORD})
-				e.peer:send(json.encode(login))
-			elseif e.type == "receive" then -- Standard msg event 
-				process_packet(e)
-			end
-		end
-		
-        -- process text buffer 
-        for _i=1,TEXT_SPD do
-            if #text_buffer > 0 then 
-                text_screen[(text_buffer[1].y * 80) + text_buffer[1].x] = { text_buffer[1].c, text_buffer[1].r }
-                table.remove(text_buffer, 1)
-            end
+    txt_blink_ctr = txt_blink_ctr + dt
+
+    -- CHECK SERVER 
+    e = host:service()
+    if e then
+        if e.type == "connect" then -- We connected, first event
+            p("Connected: ", {0.5,1,0.5}, false)
+            p(tostring(e.peer:connect_id()))
+            login = LoginPacket:new({uid=my_uid, login=USERNAME, pass=PASSWORD})
+            e.peer:send(json.encode(login))
+        elseif e.type == "receive" then -- Standard msg event 
+            process_packet(e)
         end
+    end
+    
+    -- process text buffer 
+    for _i=1,TEXT_SPD do
+        if #text_buffer > 0 then 
+            text_screen[(text_buffer[1].y * 80) + text_buffer[1].x] = { text_buffer[1].c, text_buffer[1].r }
+            table.remove(text_buffer, 1)
+            update_canvas = true 
+        end
+    end
 
-        -- draw text screen to canvas during main loop 
-        lg.setCanvas(text_canvas)
-            lg.clear(0.1, 0.1, 0.1)
-            for y=0,24 do
-                for x=0,80 do 
-                    if(text_screen[(y*80)+x] ~= nil) then 
-                        lg.setColor(text_screen[(y*80)+x][2])
-                        lg.print(text_screen[(y*80)+x], x * 8, y * 16)
-                    end
+    -- draw text screen to canvas during main loop 
+    if(update_canvas)then
+    lg.setCanvas(text_canvas)
+        lg.clear(0.1, 0.1, 0.1)
+        for y=0,24 do
+            for x=0,80 do 
+                if(text_screen[(y*80)+x] ~= nil) then 
+                    lg.setColor(text_screen[(y*80)+x][2])
+                    lg.print(text_screen[(y*80)+x], x * 8, y * 16)
                 end
             end
-        lg.setCanvas()
-
-        -- flicker txt line 
-        if txt_blink_ctr > line_blink_spd then 
-            if draw_cursor_line == false then 
-                draw_cursor_line = true 
-            else 
-                draw_cursor_line = false 
-            end
-            txt_blink_ctr = 0
         end
+    lg.setCanvas()
+    update_canvas = false 
+    end
+
+    -- flicker txt line 
+    if txt_blink_ctr > line_blink_spd then 
+        if draw_cursor_line == false then 
+            draw_cursor_line = true 
+        else 
+            draw_cursor_line = false 
+        end
+        txt_blink_ctr = 0
+    end
 		
 end
 
