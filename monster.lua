@@ -1,3 +1,18 @@
+MOB_XP={25,
+50,
+112,
+150,
+250,
+375,
+525,
+800,
+1125,
+1500,
+2062,
+2700,
+3412,
+4200,
+5062}
 
 Monster={}
 function Monster:new(o)
@@ -28,7 +43,7 @@ function Monster:new(o)
 	o.mp = o.mp or 5
 	o.cur_mp = o.cur_mp or o.mp
 	o.skills = o.skills or { }
-	o.loot = o.loot or LootTable:new({})
+	o.loot = o.loot or {}
     o.desc = o.desc or "A monster description"
 
 	o.copy = function()
@@ -65,8 +80,8 @@ function Monster:new(o)
 		c.cur_mp=o.cur_mp
 		c.skills=o.skills -- this table alone is a ptr, should be fine
 		c.loot={}
-		for i=1,#o.loot do 
-			c.loot[i]=o.loot[i].copy()
+		for i=1,12 do 
+			c.loot[i]=o.loot[i]
 		end
 		c.desc=o.desc
 		return c 
@@ -77,12 +92,12 @@ end
 
 
 Monster_DB = {}
-Monster_DB.Goblin = Monster.new( { name="Goblin", 
+Monster_DB.Goblin = Monster:new( { name="Goblin", 
 	perception=PERCEPTION.Darkvision, 
 	language={LANGUAGES.BARBARIC},
 	weakness={ELEMENTS.Magic, 2},
     lv=2,
-	initiative=11, -- spd = (7 - get_mod(monster.initiative))
+	initiative=11, -- spd = (7 - (monster.initiative/6))
 	fort=3,
 	will=3,
 	acc=10,
@@ -91,10 +106,12 @@ Monster_DB.Goblin = Monster.new( { name="Goblin",
 	def=2,
 	hp=16,
 	mp=12,
-	loot=LootTable:new({treasure={
-		[3]=Item.new({name="Crude Weapon",worth=10,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White},alchemy_rank=RANK.B}),
-		[9]=Item.new{{name="Weapon",worth=30,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White}, alchemy_rank=RANK.B}},
-		[12]=Item.new{{name="High-Quality Weapon",worth=150,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White}, alchemy_rank=RANK.A}}
-	}}),
+	loot={nil,nil,
+		Treasure_DB.Crude_Weapon,
+		nil,nil,nil,nil,nil,
+		Treasure_DB.Weapon,
+		nil,nil,
+		Treasure_DB.HQWeapon
+	},
 	desc="A green-skinned, scantily-clad barbarous."
 })

@@ -1,8 +1,10 @@
+local json = require "json"
 
 STATE = { 
 	NONE = 0,
 	IN_COMBAT = 1
 }
+
 
 Character={} -- class Character
 -- These are pulled from a SQLiteDB querying by user "owner" 
@@ -59,14 +61,17 @@ function Character:new(o)
 
 	o.location = o.location or nil -- by index!
 
-	o.state = STATE.NONE
+	o.state = o.state or STATE.NONE
 
 	-- BY INDEX!
 	o.inventory = o.inventory or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
+
 	o.eqp_weapon = o.eqp_weapon or 1 -- Equipment_DB[1]
 	o.eqp_armor = o.eqp_armor or nil 
 	o.eqp_shield = o.eqp_shield or nil 
 	o.eqp_accessory = o.eqp_accessory or { 0,0,0,0,0,0,0,0,0 }
+
+	o.experience = o.experience or 0 
 
 	o.get_level = function(sk)
 		for i=1,#o.skills do
@@ -114,6 +119,7 @@ function Character:new(o)
 		_me.eqp_shield = o.eqp_shield 
 		_me.eqp_accessory = o.eqp_accessory 
 		_me.state = o.state 
+		_me.experience = o.experience 
 		return { character = _me, type="CHARACTER_DAT" } 
 	end
 	o.from_blob = function(b)
@@ -152,6 +158,7 @@ function Character:new(o)
 		o.eqp_shield = b.eqp_shield 
 		o.eqp_accessory = b.eqp_accessory 
 		o.state = b.state 
+		o.experience = b.experience 
 	end
 	return o 
 end

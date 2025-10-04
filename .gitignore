@@ -1,0 +1,4 @@
+*.so
+dist/
+luamud/
+luamud.exe

@@ -36,7 +36,9 @@ function Location:new(o)
 			p.current_players[i]=o.current_players[i].name
 		end
 		for i=1,#o.active_mobs do 
-			p.mobs[i]=o.active_mobs[i].name -- names only 
+			if(o.active_mobs[i] ~= nil)then
+				p.mobs[i]=o.active_mobs[i].name -- names only 
+			end
 		end
 		p.exits={}
 		for i=1,#o.exits do 

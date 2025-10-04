@@ -5,9 +5,9 @@ function Item:new(o)
     setmetatable(o, self)
     self.__index = self 
     -- 
-	o.name = o.name or "ItemName"
+	o.name = o.name or nil
 	o.type = o.type or ITEMTYPE.Treasure
-	o.desc = o.desc or "A piece of treasure for selling."
+	o.desc = o.desc or nil
 	o.worth = o.worth or 10 -- in g 
 	o.alchemy_color = o.alchemy_color or { ALCHEMY_COLORS.White }
 	o.alchemy_rank = o.alchemy_rank or RANK.C
@@ -58,11 +58,14 @@ function Equipment:new(o)
 end
 
 Equipment_DB = {}
-Equipment_DB.Knife = Equipment.new({})
+Equipment_DB[EQUIPMENT.Knife] = Equipment:new({}) -- Knife = 1
 
 Treasure_DB = {}
-Treasure_DB.Beautiful_Feathers = Item.new( {name="Beautiful Feathers", worth=30, alchemy_color={ALCHEMY_COLORS.Gold, ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
-Treasure_DB.Big_Horn = Item.new( {name="Big Horn", worth=100, alchemy_color={ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
+Treasure_DB.Beautiful_Feathers = Item:new( {name="Beautiful Feathers", worth=30, alchemy_color={ALCHEMY_COLORS.Gold, ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
+Treasure_DB.Big_Horn = Item:new( {name="Big Horn", worth=100, alchemy_color={ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )
+Treasure_DB.Crude_Weapon = Item:new({name="Crude Weapon",worth=10,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White},alchemy_rank=RANK.B})
+Treasure_DB.Weapon = Item:new({name="Weapon",worth=30,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White},alchemy_rank=RANK.B})
+Treasure_DB.HQWeapon = Item:new({name="High-Quality Weapon",worth=150,alchemy_color={ALCHEMY_COLORS.Black, ALCHEMY_COLORS.White},alchemy_rank=RANK.A})
 
 LootTable={}
 function LootTable:new(o)
@@ -70,15 +73,14 @@ function LootTable:new(o)
     setmetatable(o, self)
     self.__index = self 
     -- 
-	o.treasure = o.treasure or { 
-		[0] =  -- 0 = always 
-			nil,--Treasure_DB.Beautiful_Feathers,
-		[4] = nil, -- 2-4
-			-- Nothing
-		[10] = -- 5-10
-			nil,--Treasure_DB.Big_Horn,
-		[12] =  -- 11+
-			Item.new({name="Bag of Silver", worth=10*tot(roll())})
+	o = o or { 
+		nil,  -- 0 = always 
+		nil,nil,
+		nil, -- 2-4
+		nil,nil,nil,nil,nil,	-- Nothing
+		nil,--Treasure_DB.Big_Horn,
+		nil,
+		Item:new({name="Bag of Silver", worth=10*tot(roll())})
 	}
 	return o 
 end

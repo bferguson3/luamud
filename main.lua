@@ -1,14 +1,15 @@
 -- love2d client 
 local lg = love.graphics 
+dofile = love.filesystem.load
 
 local enet = require "enet"
 local json = require "json"
-dofile("enums.lua")
-dofile("packets.lua")
-dofile("ansi.lua")
-dofile("uid.lua")
-dofile("c_character.lua")
 local bit = require "bit"
+dofile("enums.lua")()
+dofile("packets.lua")()
+dofile("ansi.lua")()
+dofile("uid.lua")()
+dofile("c_character.lua")()
 
 local host = enet.host_create()
 local server = host:connect("localhost:6789")
@@ -147,14 +148,13 @@ function parse_input(f)
 		server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="LOOK", loc=active_character.location})))
 	
     -- SAY 
-    elseif string.find(f, "say ") == 1 or string.sub(f, 1, 2) == "\"" then 
+    elseif string.find(f, "say ") == 1 or string.sub(f, 1, 1) == "\"" then 
         local d = ""
         if string.find(f, "say ") == 1 then 
             d = string.sub(f, 5, #f)
         else -- "
             d = string.sub(f, 2, #f)
         end
-        p("You say, \"" .. d .. "\"")
         server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
 
     end

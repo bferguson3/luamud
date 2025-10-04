@@ -89,3 +89,8 @@ DISPOSITION = {
 	Neutral = 1,
 	Hostile = 2
 }
+
+
+EQUIPMENT = { 
+	Knife = 1
+}
