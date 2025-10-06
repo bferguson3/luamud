@@ -69,12 +69,14 @@ print("OK.")
 local second_timer = os.clock()
 local second_timer_2 = os.clock()
 local last_queue_time = os.clock()
-local SEED_TIMER = 30
-local PRUNE_TIMER = 60*10
+local SEED_TIMER = 300
+local PRUNE_TIMER = 600
 local EVT_QUEUE_LEN = 5
 local event_queue={}
 local login_count = 0
 local next_queue = 1
+local second_timer_3 = os.clock()
+local CHAR_SAVE_TIMER = 30
 
 ACTIONS = { 
 	STD_ATTACK = 1
@@ -101,14 +103,17 @@ function process_login(p)
 	if result[1]==nil then 
 		-- If the login entry is not in the database, then add it as new 
 		db:execute("INSERT INTO user_database (user, password) VALUES ('" .. p.login .. "', '" .. _penc .. "');")
+		db:close()
 		print("New user created.")
 		return true 
 	else 
 		-- login exists, comapre. 
 		print("User found. Checking password...")
 		if result[1].password == _penc then 
+			db:close()
 			return true 
 		else 
+			db:close()
 			return false 
 		end
 	end 
@@ -122,21 +127,33 @@ function send_to_room(_ri, _s)
 	end
 end
 
+function refresh_mob(m)
+	m.dead = false
+	m.cur_hp = m.hp 
+	m.cur_mp = m.mp 
+end
 
 function process_event_queues()
 	local _elapsed = os.clock() - last_queue_time
-	if(_elapsed < 0.1)then sleep(0.1-_elapsed) end
+	if(_elapsed < 0.1)then 
+		sleep(0.1-_elapsed) 
+		second_timer = second_timer + 0.1 - _elapsed
+		--print(second_timer, second_timer_2, second_timer_3)
+		second_timer_2 = second_timer_2 + 0.1 - _elapsed
+		second_timer_3 = second_timer_3 + 0.1 - _elapsed
+	end
 	_elapsed = 0.1
 	for i=1,#event_queue do 
 		if event_queue[i] ~= nil then 
 			event_queue[i].timer = event_queue[i].timer - _elapsed 
 			local evt = event_queue[i]
 			if event_queue[i].timer <= 0 then 
-				if(active_clients[evt.src])then
-					-- perform event 
-					if evt.type == "combat_round" then 
+				if evt.type == "combat_round" then 
 					-- COMBAT EVENT 
 					-- 
+					if(active_clients[evt.src])then
+						-- perform event 
+						
 						-- src, tgt, action 
 						local _char = active_clients[evt.src].current_character
 						local _enm = GAME_MAP[_char.location].active_mobs[evt.tgt]
@@ -155,9 +172,10 @@ function process_event_queues()
 								active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
 								active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
 								active_clients[evt.src].current_character.state = STATE.NONE
-								table.remove(GAME_MAP[_char.location].active_mobs, evt.tgt) -- erase em 
-								_enm = nil 
+								GAME_MAP[_char.location].active_mobs[evt.tgt].dead = true -- kill em 
+								table.remove(event_queue, i)
 								-- TODO: custom respawn timers 
+								-- src = index of enemy that died, tgt = location to spawn 
 								table.insert(event_queue, { type="respawn", src=evt.tgt, tgt=_char.location, action=nil, timer=60 })
 							end
 							-- re-initiative: 
@@ -165,19 +183,19 @@ function process_event_queues()
 							if event_queue[i].timer < 1 then event_queue[i].timer = 1 end 
 						end
 						-- do not delete until enemy is dead/nil
-						if(_enm == nil)then event_queue[i]=nil end 
-
+						--if(_enm == nil)then event_queue[i]=nil end 
+						-- and delete it if not needed 
+						--event_queue[i] = nil 
+					else 
+						-- the client must have logged out 
+						table.remove(event_queue, i)
 					end
-					-- and delete it if not needed 
-					--event_queue[i] = nil 
-				else 
-					-- the client must have logged out 
-					table.remove(event_queue, i)
-				end
-				if evt.type == "respawn" then 
-					--RESPAWN EVENT 
-					-- 
-					table.insert(GAME_MAP[evt.tgt].active_mobs, GAME_MAP[evt.tgt].mobs[evt.src].copy())
+				elseif evt.type == "respawn" then 
+				--RESPAWN EVENT 
+				-- 
+					--table.insert(GAME_MAP[evt.tgt].active_mobs, GAME_MAP[evt.tgt].mobs[evt.src].copy())
+					--GAME_MAP[evt.tgt].active_mobs[evt.src].refresh()
+					refresh_mob(GAME_MAP[evt.tgt].active_mobs[evt.src]) 
 					send_to_room(evt.tgt, GAME_MAP[evt.tgt].mobs[evt.src].name .. " appears.")
 					table.remove(event_queue, i)
 				end
@@ -193,7 +211,7 @@ function add_loot(_char, _item, peer)
 	while i <= 10 do -- do I already have one? CAN THESE BE POINTERS? 
 		if(_char.inventory[i][1]==_item)then 
 			_char.inventory[i][2] = _char.inventory[i][2] + 1
-			peer:send(json.encode(MessagePacket:new({msg="You picked up another %rd4d" .. _item.name .. "%rfff. (Now holding " .. _char.inventory[i][2] .. ")"})))
+			peer:send(json.encode(MessagePacket:new({msg="You picked up another %rd4d" .. Treasure_DB[_item].name .. "%rfff. (Now holding " .. _char.inventory[i][2] .. ")"})))
 			return
 		end
 		i = i+1
@@ -208,10 +226,10 @@ function add_loot(_char, _item, peer)
 	if i < 11 then 
 		-- ok, fits 
 		_char.inventory[i][1]=_item; _char.inventory[i][2]=1;
-		peer:send(json.encode(MessagePacket:new({msg="You found a %rd4d" .. _item.name .. "%rfff on the enemy corpse!"})))
+		peer:send(json.encode(MessagePacket:new({msg="You found a %rd4d" .. Treasure_DB[_item].name .. "%rfff on the enemy corpse!"})))
 	else -- No room!
 		-- TODO: uhh not sure 
-		peer:send(json.encode(MessagePacket:new({msg="You found a %rd4d" .. _item.name .. "%rfff, but your inventory is full, so it was left behind..."})))
+		peer:send(json.encode(MessagePacket:new({msg="You found a %rd4d" .. Treasure_DB[_item].name .. "%rfff, but your inventory is full, so it was left behind..."})))
 	end
 end
 
@@ -297,13 +315,21 @@ function process_attack(_char, _enm, evt)
 				-- always trasure 
 				print("TODO: Always drop treasure found. need handling!")
 			end
+			--for k,v in pairs(_enm.loot)do
+			--	print(k,v)
+			--end
 			local _lr = tot(roll(2,6))
 			for i=_lr,2,-1 do 
-				if(_enm.loot[i]~=nil)then 
-					print("loot: " .. i .. ":" .. _enm.loot[i].name)
-					add_loot(_char, _enm.loot[i], active_clients[evt].peer)
-					break
+				local lg = false 
+				for k,v in pairs(_enm.loot)do 
+					if tonumber(k)==i then 
+						print("loot: " .. i .. ":" .. Treasure_DB[v].name)
+						add_loot(_char,v, active_clients[evt].peer)
+						lg = true 
+						break	
+					end
 				end
+				if lg then break end 
 			end
 			-- pop is done when we return. ..
 		end
@@ -314,27 +340,41 @@ function process_attack(_char, _enm, evt)
 	
 end
 
-
 --
 -- MAIN SERVER LOOP
 --
 while 1 do
 	-- Timer stuff 
 	-- Reseed the math seed every n seconds
-	if os.clock() > (second_timer + SEED_TIMER) then 
+	if second_timer > SEED_TIMER then 
 		math.randomseed(os.clock())
-		second_timer = os.clock()
+		second_timer = 0
+		print("math.random reseeded.")
 	end
 	-- Prune clients that have not done anything
-	if os.clock() > (second_timer_2 + PRUNE_TIMER) then 
+	if second_timer_2 > PRUNE_TIMER then 
 		for k,v in pairs(active_clients) do 
-			print(k,v)
+			--print(k,v)
 			if (os.clock() - active_clients[k].last_active) > PRUNE_TIMER then 
 				active_clients[k] = nil 
 				print("disconnected user " .. k)
 			end
 		end
-		second_timer_2 = os.clock()
+		second_timer_2 = 0
+	end
+	-- save any clients that are currently online every 10s
+	if second_timer_3 > CHAR_SAVE_TIMER then 
+		-- for each char logged in, 
+		db = sqlite:open("db/players.db")
+		for k,v in pairs(active_clients) do 
+			-- INSERT OR REPLACE in the db 
+			db:execute(create_char_sqlstr(v.current_character))
+		end
+		db:close()
+		if login_count > 0 then 
+			print(login_count .." characters saved to DB.")
+		end
+		second_timer_3 = 0
 	end
 
 	-- Main "events" loop for combat timings etc 
@@ -356,15 +396,31 @@ while 1 do
 					active_clients[pak.uid] = Client:new( { login=pak.login, last_active=os.clock(), peer=e.peer })
 					login_count = login_count + 1
 					print("Current est no. of users: " .. login_count)
-					-- -- TODO FIXME perform SQL query here to pull characters into character_db ?
-					-- for now make a new random 
-					_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
-					_new.location = 1 -- TEMP TEST! ==GAME_MAP[1]
-					active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
-					table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
-					e.peer:send(json.encode(MessagePacket:new({msg="Welcome!\nA new character has been created for you."})))
-					e.peer:send(json.encode(_new.to_blob()))
-					e.peer:send(json.encode(GAME_MAP[_new.location].make_packet())) -- and send the player the room dat
+					-- -- TODO FIXME perform SQL query here to pull characters into character_db 
+					db = sqlite:open("db/players.db")
+					local result = db:select("character_database", { where = { user = pak.login }})
+					if result[1] ~= nil then 
+						print("Character found: " .. result[1].name .. "(total: " .. #result .. ")")
+						-- make new char object and copy in sql result 
+						local _tc = Character:new( { user=pak.login  })
+						_tc.from_sql(result[1])
+						--db:execute("DELETE FROM character_database WHERE user = '" .. pak.login .. "';")
+						--db:execute(create_char_sqlstr(_tc))
+						active_clients[pak.uid].current_character = _tc -- assign to client object 
+						table.insert(GAME_MAP[_tc.location].current_players, pak.uid)
+						e.peer:send(json.encode(MessagePacket:new({msg="Welcome back!\nYour primary character has been loaded."})))
+						e.peer:send(json.encode(_tc.to_blob()))
+						e.peer:send(json.encode(GAME_MAP[_tc.location].make_packet()))
+					else 
+						-- for now make a new random 
+						_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
+						active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
+						table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
+						e.peer:send(json.encode(MessagePacket:new({msg="Welcome!\nA new character has been created for you."})))
+						e.peer:send(json.encode(_new.to_blob()))
+						e.peer:send(json.encode(GAME_MAP[_new.location].make_packet())) -- and send the player the room dat
+					end
+					db:close()
 				else 
 					print("Login failed for user ", e.peer)
 				end
@@ -373,6 +429,13 @@ while 1 do
 			-- COMMAND PACKET TYPE 
 			-- 
 				if active_clients[pak.uid] then -- We are logged in, cmd execute OK 
+					if active_clients[pak.uid].peer ~= e.peer then 
+						-- WARNING: A user other than the prescribed tried a command. Boot them with no text.
+						print("Warning:",e.peer," not validated. Booting them.")
+						e.peer:disconnect_now()
+						return
+					end
+
 					active_clients[pak.uid].last_active = os.clock() -- update time 
 					local _char = active_clients[pak.uid].current_character 
 					print("user " , active_clients[pak.uid].peer , " used command " .. pak.cmd)
@@ -386,9 +449,13 @@ while 1 do
 					-- ATTACK COMMAND 
 						-- loc is game map index -- tgt is enemy index 
 						if(_char.state ~= STATE.IN_COMBAT)then
-							print(_char.name .. " engages " .. GAME_MAP[pak.loc].active_mobs[pak.tgt].name .. "!")
-							_char.state = STATE.IN_COMBAT
-							table.insert(event_queue, { type="combat_round", src=pak.uid, tgt=pak.tgt, action=ACTIONS.STD_ATTACK, timer=1 } )
+							if GAME_MAP[pak.loc].active_mobs[pak.tgt].dead then 
+								e.peer:send(json.encode(MessagePacket:new({msg="That enemy has already perished!"})))
+							else 
+								print(_char.name .. " engages " .. GAME_MAP[pak.loc].active_mobs[pak.tgt].name .. "!")
+								_char.state = STATE.IN_COMBAT
+								table.insert(event_queue, { type="combat_round", src=pak.uid, tgt=pak.tgt, action=ACTIONS.STD_ATTACK, timer=1 } )
+							end
 						else 
 							-- TODO : change target if needed?
 						end

@@ -1725,16 +1725,16 @@ tgt_wk=12,
 	nil,nil,nil,nil,TREASURES.StrangeNecklace,
 	nil,nil,nil,nil}})
 
-	Monster_DB.Goblin = Monster:new({
-		name='Goblin',
-		lv=2,
-		type=MOBTYPES.Barbarous,
-		int=INTELLIGENCE.Low,
-		perception=PERCEPTION.Darkvision,
-		soulscars=2,
+Monster_DB.Goblin = Monster:new({
+	name='Goblin',
+	lv=2,
+	type=MOBTYPES.Barbarous,
+	int=INTELLIGENCE.Low,
+	perception=PERCEPTION.Darkvision,
+	soulscars=2,
 	language={LANGUAGES.Barbaric,LANGUAGES.Youma},
-		tgt_rep=5,
-tgt_wk=10,
+	tgt_rep=5,
+	tgt_wk=10,
 	weakness={ ELEMENTS.Magic, 2},
 	initiative=11,
 	move=11,
@@ -1749,7 +1749,8 @@ tgt_wk=10,
 	loot={nil, nil,
 	nil,nil,nil,nil,nil,TREASURES.Weapon,
 	TREASURES.HighqualityWeapon,
-	nil,nil,nil}})
+	nil,nil,nil}
+})
 
 	Monster_DB.SaberHoodling = Monster:new({
 		name='Saber Hoodling',

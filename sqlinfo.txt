@@ -1,157 +1,13 @@
-o.user = o.user or "None"
-	o.name = o.name or "None"
-	o.alv = o.alv or 0 -- derive this too
-	o.classes = o.classes or { { SKILLS.FIGHTER, 1 } } -- normal table
-	-- attributes and modifiers are derived from the below:
-	o.race = o.race or "Human"
-	o.a = o.a or 0
-	o.b = o.b or 0
-	o.c = o.c or 0
-	o.d = o.d or 0
-	o.e = o.e or 0
-	o.f = o.f or 0
-	o.skill = o.skill or 0 
-	o.body = o.body or 0 
-	o.mind = o.mind or 0 
-	o.growth = o.growth or { 0, 0, 0, 0, 0, 0 } -- table with 6 nums
-	o.fortitude = o.fortitude or 0 
-	o.willpower = o.willpower or 0 
-	
-	o.spoken_lang = o.spoken_lang or { LANGUAGES.TRADE_COMMON }
-	o.written_lang = o.written_lang or { LANGUAGES.TRADE_COMMON } -- table w strs
-	o.feats = o.feats or {} -- table of feat enums, ENUM ONLY!
 
-	o.hp = o.hp or 0
-	o.cur_hp = o.hp or 0 
-	o.mp = o.mp or 0
-	o.cur_mp = o.mp or 0
-	o.scars = o.scars or 0
-	o.gender = o.gender or "" -- string
-	o.age = o.age or 15
+-- RESET TABLES AFTER DELETE 
 
-	o.location = o.location or 0 -- by index!
-
-	o.state = o.state or STATE.NONE
-
-	-- inventory (aka loot) by PTR
-	o.inventory = o.inventory or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
-	-- eqp always by index 
-	o.eqp_bag = o.eqp_bag or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
-	-- BY INDEX!
-	o.eqp_weapon = o.eqp_weapon or 1 -- Equipment_DB[1]
-	o.eqp_armor = o.eqp_armor or 0 
-	o.eqp_shield = o.eqp_shield or 0 
-	o.eqp_accessory = o.eqp_accessory or { 0,0,0,0,0,0,0,0,0 }
-
-	o.experience = o.experience or 0 
-
-function create_char_sqlstr(o)
-	local _s = "INSERT INTO character_database (name, user, alv, classes, race, a, b, c, d, e, f, skill, body, mind, growth, fortitude, willpower, spoken_lang, written_lang, \
-feats, hp, cur_hp, mp, cur_mp, scars, gender, age, location, inventory, eqp_bag, eqp_weapon, eqp_armor, eqp_shield, \
-eqp_accessory, experience)\
-VALUES (\
-'" .. o.name .. "',\
-'" .. o.user .. "',\
-" .. o.alv .. ",\
-'["--[[1,1]]
-    for i=1,#o.classes do
-        _s = _s .. '[' .. o.classes[i][1] .. ',' .. o.classes[i][2] .. '],'
-    end 
-    _s = string.sub(_s, 1, #_s-1) -- cut last , 
-    _s = _s .. "]',\n"
-    _s = _s .. "'" .. o.race .. "',\
-" .. o.a .. ",\
-" .. o.b .. ",\
-" .. o.c .. ",\
-" .. o.d .. ",\
-" .. o.e .. ",\
-" .. o.f .. ",\
-" .. o.skill .. ",\
-" .. o.body .. ",\
-" .. o.mind .. ",\
-["
-    for i=1,#o.growth do 
-        _s = _s .. o.growth[i] .. ','
-    end
-    _s = _s:sub(1, #_s-1)
-    _s = _s .. "],\
-".. o.fortitude .. ",\
-".. o.willpower .. ",\
-["
-    for i=1,#o.spoken_lang do 
-        _s = _s .. o.spoken_lang[i] .. ','
-    end
-    _s = _s:sub(1, #_s-1)
-    _s = _s .. "],\
-["
-    for i=1,#o.written_lang do 
-        _s = _s .. o.written_lang[i] .. ','
-    end
-    _s = _s:sub(1, #_s-1)
-    _s = _s .. "],\
-["
-    for i=1,#o.feats do 
-        _s = _s .. o.feats[i] .. ','
-    end
-    _s = _s .. "],\
-" .. o.hp .. ",\
-" .. o.cur_hp .. ",\
-" .. o.mp .. ",\
-" .. o.cur_mp .. ",\
-" .. o.scars .. ",\
-'" .. o.gender .. "'\
-" .. o.age .. "\
-" .. o.location .. "\
-'["
-    for i=1,#o.inventory do
-        _s = _s .. '[' .. o.inventory[i][1] .. ',' .. o.inventory[i][2] .. '],'
-    end 
-    _s = string.sub(_s, 1, #_s-1) -- cut last , 
-    _s = _s .. "]',\n"
-'["
-    for i=1,#o.eqp_bag do
-        _s = _s .. '[' .. o.eqp_bag[i][1] .. ',' .. o.eqp_bag[i][2] .. '],'
-    end 
-    _s = string.sub(_s, 1, #_s-1) -- cut last , 
-    _s = _s .. "]',\
-" .. o.eqp_weapon .. ",\
-" .. o.eqp_armor .. ",\
-" .. o.eqp_shield .. ",\
-'["
-    for i=1,#o.eqp_accessory do
-        _s = _s .. '[' .. o.eqp_accessory[i][1] .. ',' .. o.eqp_accessory[i][2] .. '],'
-    end 
-    _s = string.sub(_s, 1, #_s-1) -- cut last , 
-    _s = _s .. "]',\
-" .. o.experience .. ")"
-    return _s 
-end
-
-"',\
-'Human',\
-7,7,7,7,7,7,\
-7,7,7,\
-'[0,0,0,0,0,0]',\
-0,0,\
-'[1]',\
-'[1]',\
-'[]',\
-10,10,\
-10,10,\
-0,'Male',\
-15,1,\
-'[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]',\
-'[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]',\
-0,0,0,\
-'[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]',\
-0)"
-end
-
+local db = sqlite:open("db/users.db")
 db:execute("CREATE TABLE user_database (\
 	user TEXT PRIMARY KEY, \
 	password TEXT
 );")
-
+db:close() 
+db = sqlite:open("db/players.db")
 db:execute("CREATE TABLE character_database (\
 	name TEXT PRIMARY KEY, \
 	user TEXT,\
@@ -189,3 +45,4 @@ db:execute("CREATE TABLE character_database (\
 	eqp_accessory TEXT,\
 	experience INTEGER \
 );")
+db:close()

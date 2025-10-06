@@ -3,6 +3,7 @@ Equipment_DB = {}
 EQUIPMENT = { 
 	Knife = 1
 }
+Equipment_DB[0] = nil 
 Equipment_DB[EQUIPMENT.Knife] = Equipment:new({}) -- Knife = 1
 --Treasure_DB = {}
 --Treasure_DB[TREASURES.BeautifulFeathers] = Item:new( {name="Beautiful Feathers", worth=30, alchemy_color={ALCHEMY_COLORS.Gold, ALCHEMY_COLORS.Red}, alchemy_rank=RANK.B} )

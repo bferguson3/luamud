@@ -100,9 +100,16 @@ function Monster:new(o)
 	o.cur_hp = o.cur_hp or o.hp
 	o.mp = o.mp or 5
 	o.cur_mp = o.cur_mp or o.mp
+	o.dead = o.dead or false 
 	o.skills = o.skills or { }
 	o.loot = o.loot or {}
     o.desc = o.desc or "A monster description"
+
+	o.refresh = function()
+		o.cur_hp = o.hp 
+		o.cur_mp = o.mp 
+		o.dead = false 
+	end
 
 	o.copy = function()
 		local c = {}
@@ -138,10 +145,12 @@ function Monster:new(o)
 		c.cur_mp=o.cur_mp
 		c.skills=o.skills -- this table alone is a ptr, should be fine
 		c.loot={}
+		c.dead = o.dead or false 
 		for i=1,12 do 
 			c.loot[i]=o.loot[i]
 		end
 		c.desc=o.desc
+		c.refresh = o.refresh
 		return c 
 	end
 

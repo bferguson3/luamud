@@ -44,6 +44,14 @@ function Character:new(o)
 		for s,v in ipairs(o.classes) do 			-- adventure level 
 			if v[2] > o.alv then o.alv = v[2] end 
 		end
+		o.hp = o.vit + (o.alv * 3)
+		o.mp = o.spi + (o.alv)
+		if o.cur_hp == 0 then 
+			o.cur_hp = o.hp 
+		end
+		if o.cur_mp == 0 then 
+			o.cur_mp = o.mp 
+		end
 	end 
 	o.derive()
 	
@@ -59,7 +67,7 @@ function Character:new(o)
 	o.gender = o.gender or "" -- string
 	o.age = o.age or 15
 
-	o.location = o.location or 0 -- by index!
+	o.location = o.location or 1 -- by index!
 
 	o.state = o.state or STATE.NONE
 
@@ -115,7 +123,7 @@ function Character:new(o)
 		_me.inventory = {}
 		for i=1,10 do 
 			if o.inventory[i][1]~=0 then 
-				_me.inventory[i] = {o.inventory[i][1].name, o.inventory[i][2]}
+				_me.inventory[i] = {Treasure_DB[o.inventory[i][1]].name, o.inventory[i][2]}
 			else 
 				_me.inventory[i] = { 0, 0 }
 			end
@@ -123,7 +131,7 @@ function Character:new(o)
 		_me.eqp_bag = {}
 		for i=1,10 do 
 			if o.eqp_bag[i][1] ~= 0 then 
-				_me.eqp_bag[i] = { o.eqp_bag[i][1].name, o.eqp_bag[i][2] }
+				_me.eqp_bag[i] = { Equipment_DB[o.eqp_bag[i][1]].name, o.eqp_bag[i][2] }
 			else 
 				_me.eqp_bag[i] = { 0, 0}
 			end
@@ -137,6 +145,9 @@ function Character:new(o)
 		return { character = _me, type="CHARACTER_DAT" } 
 	end
 	o.from_blob = function(b) -- this is only used on the CLIENT. 
+		for k,v in pairs(b)do
+			print(k,v)
+		end
 		o.name = b.name 
 		o.alv = b.alv 
 		o.classes = b.classes 
@@ -178,6 +189,84 @@ function Character:new(o)
 		o.state = b.state 
 		o.experience = b.experience 
 	end
+	o.from_sql = function(b) 
+		-- b is blob from sql 
+		o.body = b.body
+		o.mind = b.mind
+		o.skill = b.skill
+		o.a = b.a
+		o.b = b.b
+		o.c = b.c
+		o.d = b.d
+		o.e = b.e
+		o.f = b.f
+		o.fortitude = b.fortitude
+		o.willpower = b.willpower
+		o.mp = b.mp
+		o.hp = b.hp
+		o.cur_mp = b.cur_mp
+		o.cur_hp = b.cur_hp
+		o.name = b.name 
+		o.experience = b.experience
+		o.race = b.race 
+		o.scars = b.scars
+		o.gender = b.gender 
+		o.location = b.location
+		o.alv = b.alv
+		o.age = b.age 
+		o.eqp_weapon = EQUIPMENT.Knife
+		o.classes={}
+		local tc = {}
+		for num in b.classes:gmatch("%d+")do 
+			table.insert(tc, num)
+		end
+		i = 1
+		while i < #tc do
+			table.insert(o.classes, {tonumber(tc[i]), tonumber(tc[i+1])})
+			i = i + 2
+		end
+		o.growth = {}
+		for num in b.growth:gmatch("%d+")do 
+			table.insert(o.growth, tonumber(num))
+		end
+		o.spoken_lang = {}
+		for num in b.spoken_lang:gmatch("%d+")do 
+			table.insert(o.spoken_lang, tonumber(num))
+		end
+		o.written_lang = {}
+		for num in b.written_lang:gmatch("%d+")do 
+			table.insert(o.written_lang, tonumber(num))
+		end
+		o.feats = {}
+		for num in b.feats:gmatch("%d+")do 
+			table.insert(o.feats, tonumber(num))
+		end
+		o.inventory={}
+		tc = {}
+		for num in b.inventory:gmatch("%d+")do 
+			table.insert(tc, num)
+		end
+		i = 1
+		while i < #tc do
+			table.insert(o.inventory, {tonumber(tc[i]), tonumber(tc[i+1])})
+			i = i + 2
+		end
+		o.eqp_bag={}
+		tc = {}
+		for num in b.eqp_bag:gmatch("%d+")do 
+			table.insert(tc, num)
+		end
+		i = 1
+		while i < #tc do
+			table.insert(o.eqp_bag, {tonumber(tc[i]), tonumber(tc[i+1])})
+			i = i + 2
+		end
+		o.derive()
+		-- todo 
+-- eqp_armor	0
+-- eqp_shield	0
+-- eqp_accessory	[0,0,0,0,0,0,0,0,0]
+	end
 	return o 
 end
 
@@ -211,7 +300,7 @@ function create_char_sqlstr(o)
 		return
 	end
 	
-	local _s = "INSERT INTO character_database (name, user, alv, classes, race, a, b, c, d, e, f, skill, body, mind, growth, fortitude, willpower, spoken_lang, written_lang, \
+	local _s = "INSERT OR REPLACE INTO character_database (name, user, alv, classes, race, a, b, c, d, e, f, skill, body, mind, growth, fortitude, willpower, spoken_lang, written_lang, \
 feats, hp, cur_hp, mp, cur_mp, scars, gender, age, location, inventory, eqp_bag, eqp_weapon, eqp_armor, eqp_shield, \
 eqp_accessory, experience)\
 VALUES (\

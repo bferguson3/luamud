@@ -36,7 +36,11 @@ function Location:new(o)
 			table.insert(p.current_players, active_clients[o.current_players[i]].current_character.name)
 		end
 		for i=1,#o.active_mobs do 
-			p.mobs[i]=o.active_mobs[i].name -- names only 
+			if o.active_mobs[i].dead == false then 
+				p.mobs[i]=o.active_mobs[i].name -- names only 
+			else 
+				p.mobs[i]="%raaaA " .. o.active_mobs[i].name .. " corpse"
+			end
 		end
 		p.exits={}
 		for i=1,#o.exits do 
