@@ -18,7 +18,7 @@ function Character:new(o)
 	o.alv = o.alv or 0 -- derive this too
 	o.classes = o.classes or { { SKILLS.FIGHTER, 1 } } -- normal table
 	-- attributes and modifiers are derived from the below:
-	o.race = o.race or "None"
+	o.race = o.race or "Human"
 	o.a = o.a or 0
 	o.b = o.b or 0
 	o.c = o.c or 0
@@ -179,5 +179,117 @@ function Character:new(o)
 		o.experience = b.experience 
 	end
 	return o 
+end
+
+function validate_sql_input(s)
+	for i=1,s:len() do 
+		local _c = string.byte(s:sub(i, i))
+		if (_c<48) or ((_c>57)and(_c<65)) or ((_c>90)and(_c<97)) or (_c>122) then 
+			return false 
+		end
+	end
+	return true 
+end
+
+function create_char_sqlstr(o)
+	-- first verify input: name, user, gender
+	--o.name = "; insert into "
+	if o.name:len() > 16 then 
+		print("INVALID INPUT: name (too long)")
+		return
+	end
+	if(not validate_sql_input(o.name))then
+		print("INVALID INPUT: name")
+		return
+	end
+	if(not validate_sql_input(o.user))then
+		print("INVALID INPUT: user")
+		return
+	end
+	if(not validate_sql_input(o.gender))then
+		print("INVALID INPUT: gender")
+		return
+	end
+	
+	local _s = "INSERT INTO character_database (name, user, alv, classes, race, a, b, c, d, e, f, skill, body, mind, growth, fortitude, willpower, spoken_lang, written_lang, \
+feats, hp, cur_hp, mp, cur_mp, scars, gender, age, location, inventory, eqp_bag, eqp_weapon, eqp_armor, eqp_shield, \
+eqp_accessory, experience)\
+VALUES (\
+'" .. o.name .. "',\
+'" .. o.user .. "',\
+" .. o.alv .. ",\
+'["--[[1,1]]
+    for i=1,#o.classes do
+        _s = _s .. '[' .. o.classes[i][1] .. ',' .. o.classes[i][2] .. '],'
+    end 
+    _s = string.sub(_s, 1, #_s-1) -- cut last , 
+    _s = _s .. "]',\n"
+    _s = _s .. "'" .. o.race .. "',\
+" .. o.a .. ",\
+" .. o.b .. ",\
+" .. o.c .. ",\
+" .. o.d .. ",\
+" .. o.e .. ",\
+" .. o.f .. ",\
+" .. o.skill .. ",\
+" .. o.body .. ",\
+" .. o.mind .. ",\
+'["
+    for i=1,#o.growth do 
+        _s = _s .. o.growth[i] .. ','
+    end
+    _s = _s:sub(1, #_s-1)
+    _s = _s .. "]',\
+".. o.fortitude .. ",\
+".. o.willpower .. ",\
+'["
+    for i=1,#o.spoken_lang do 
+        _s = _s .. o.spoken_lang[i] .. ','
+    end
+    _s = _s:sub(1, #_s-1)
+    _s = _s .. "]',\
+'["
+    for i=1,#o.written_lang do 
+        _s = _s .. o.written_lang[i] .. ','
+    end
+    _s = _s:sub(1, #_s-1)
+    _s = _s .. "]',\
+'["
+    for i=1,#o.feats do 
+        _s = _s .. o.feats[i] .. ','
+    end
+    _s = _s .. "]',\
+" .. o.hp .. ",\
+" .. o.cur_hp .. ",\
+" .. o.mp .. ",\
+" .. o.cur_mp .. ",\
+" .. o.scars .. ",\
+'" .. o.gender .. "',\
+" .. o.age .. ",\
+" .. o.location .. ",\
+'["
+    for i=1,#o.inventory do
+        _s = _s .. '[' .. o.inventory[i][1] .. ',' .. o.inventory[i][2] .. '],'
+    end 
+    _s = string.sub(_s, 1, #_s-1) -- cut last , 
+    _s = _s .. "]',\
+'["
+    for i=1,#o.eqp_bag do
+        _s = _s .. '[' .. o.eqp_bag[i][1] .. ',' .. o.eqp_bag[i][2] .. '],'
+    end 
+    _s = string.sub(_s, 1, #_s-1) -- cut last , 
+    _s = _s .. "]',\
+" .. o.eqp_weapon .. ",\
+" .. o.eqp_armor .. ",\
+" .. o.eqp_shield .. ",\
+'["
+    for i=1,#o.eqp_accessory do 
+        _s = _s .. o.eqp_accessory[i] .. ','
+    end
+    _s = _s:sub(1, #_s-1)
+    _s = _s .. "]',\
+" .. o.experience .. ")"
+	
+	return _s 
 end
 --

@@ -71,6 +71,7 @@ OLD_MOB_XP={25,
 4200,
 5062}
 
+
 Monster={}
 function Monster:new(o)
     local o = o or {}
@@ -79,7 +80,7 @@ function Monster:new(o)
     -- 
 	o.name = o.name or "NoName"
 	o.lv = o.lv or 1
-	o.type = o.type or "Barbarous"
+	o.type = o.type or MOBTYPES.Barbarous
 	o.int = o.int or INTELLIGENCE.Low
 	o.perception = o.perception or PERCEPTION.Normal
 	o.soulscars = o.soulscars or 1
@@ -147,28 +148,4 @@ function Monster:new(o)
     return o
 end
 
-
-Monster_DB = {}
-Monster_DB.Goblin = Monster:new( { name="Goblin", 
-	perception=PERCEPTION.Darkvision, 
-	language={LANGUAGES.BARBARIC},
-	weakness={ELEMENTS.Magic, 2},
-    lv=2,
-	initiative=11, -- spd = (7 - (monster.initiative/6))
-	fort=3,
-	will=3,
-	acc=10,
-	dmg={2,6,2},
-	evade=10,
-	def=2,
-	hp=16,
-	mp=12,
-	loot={nil,nil,
-		Treasure_DB[TREASURES.Crude_Weapon],
-		nil,nil,nil,nil,nil,
-		Treasure_DB[TREASURES.Weapon],
-		nil,nil,
-		Treasure_DB[TREASURES.HQWeapon]
-	},
-	desc="A green-skinned, scantily-clad barbarous."
-})
+dofile("db/monster_db.lua")

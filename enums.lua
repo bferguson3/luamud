@@ -26,14 +26,50 @@ EXITS = {
 }
 
 LANGUAGES = { 
-	TRADE_COMMON = 1, 
-	BARBARIC = 2,
-	OGRE = 3,
-	DRAKISH = 4,
-	ARCANA = 5, 
-	SYLVAN = 6, 
-	YOUMA = 7,
-	LIZARDMAN = 8
+	None = 0,
+	Barbaric = 1,
+	Youma = 2,
+	TradeCommon = 3,
+	Drakish = 4,
+	Arcana = 5,
+	Aviary = 6,
+	Ogre = 7,
+	Gilman = 8,
+	Lizardman = 9,
+	Centaur = 10,
+	Sylvan = 11,
+	Dragonic = 12,
+	Elven = 13,
+	Androscorpion = 14,
+	Magitech = 15,
+	Merman = 16,
+	Daemonic = 17,
+	Giantish = 18,
+	Minotaur = 19,
+	Avian = 20,
+	Lycanthrope = 21,
+	Basilisk = 22,
+	SeaAnimal = 23,
+	languagesbymagicsystem = 24,
+	Nosferatu = 25,
+	RegionalDialect = 26,
+	Vargian = 27,
+	Lycant = 28,
+	Draconic = 29,
+	All = 30,
+	Various = 31,
+	Daemoniclanguagesaddedbyshapeshift = 32,
+	Arcane = 33,
+	MagicSystemLearned = 34,
+	Tradecommon = 35,
+	Vulcan = 36,
+	Giant = 37,
+	LearnedMagicLanguage = 38,
+	Formica = 39,
+	RegionalDialectDorden = 40,
+	RegionaldialectDorden = 41,
+	Centaurian = 42,
+	Magitechlanguage = 43
 }
 
 ELEMENTS = { 
@@ -46,27 +82,32 @@ ELEMENTS = {
 	Energy = 6,
 	Slashing = 7,
 	Silver = 8,
-	Ice = 9,
-	Bludgeon = 10,
-	Lightning = 11
+	Ice = 9, -- or water 
+	Bludgeoning = 10,
+	Lightning = 11,
+	Healing = 12,
+	Evasion = 13 -- penalty to dodge
 }
+
 ITEMTYPE = { 
 	Recovery = 1,
 	Treasure = 2,
 	Equipment = 3
 }
+
 ALCHEMY_COLORS = { 
 	White = 1,
 	Gold = 2,
 	Black = 3,
-	Red = 4
+	Red = 4, 
+	Green = 5
 }
 
 RANK = { 
-	C = 1,
-	B = 2,
-	A = 3,
-	S = 4
+	B = 1,
+	A = 2,
+	S = 3,
+	SS = 4
 }
 
 STANCES = { 
@@ -77,7 +118,10 @@ STANCES = {
 INTELLIGENCE = { 
 	Low = 1,
 	Average = 2,
-	High = 3
+	High = 3,
+	Animal = 4,
+	None = 5,
+	Servant = 6
 }
 
 PERCEPTION = { 
@@ -90,3 +134,17 @@ DISPOSITION = {
 	Hostile = 2
 }
 
+
+MOBTYPES = { 
+	Barbarous = 1,
+	MythicalBeast = 2,
+	Fairy = 3,
+	Animal = 4,
+	Plant = 5,
+	Undead = 6,
+	Daemon = 7,
+	Humanoid = 8,
+	Golem = 9,
+	Construct = 10,
+	Magitech = 11
+}

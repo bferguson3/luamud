@@ -1,15 +1,56 @@
 require "enet" 
 local json = require "json"
+local sqlite = require 'sqlite.db'
+local sha = require("sha2")
+
+dofile("sleep.lua")
+--       local your_hash = sha.sha256("your string")
 dofile("enums.lua")
 dofile("packets.lua")
 dofile("ansi.lua")
-dofile("item.lua")
 dofile("c_client.lua")
 dofile("c_character.lua")
-dofile("roll.lua")
-dofile("monster.lua")
 dofile("location.lua")
 dofile("striketable.lua")
+dofile("roll.lua")
+-- LOAD DATABASE KEY 
+local MY_DB_KEY = nil
+local dbkf = io.open("database_key", "rb")
+if dbkf then 
+	MY_DB_KEY = dbkf:read("*all")
+	dbkf:close()
+end
+if MY_DB_KEY == nil then 
+	print("database_key not found. quitting")
+	quit()
+end
+-- VERYFIY MONSTER DB 
+dofile("monster.lua")
+ct = 0
+for k,v in pairs(Monster_DB)do 
+	ct = ct + 1
+end
+print(ct .. " monsters loaded.")
+-- VERIFY ITEM DB 
+dofile("item.lua")
+ct = 0
+for k,v in pairs(Treasure_DB)do 
+	ct = ct + 1
+end
+print(ct .. " treasures loaded.")
+
+local db = sqlite:open("db/users.db")
+--local testchar = Character:new( { user='test', body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
+--print(create_char_sqlstr(testchar))
+--local result = db:select("character_database", { where = { gender = "Male"  }})
+--for k,v in pairs(result)do 
+--	print(k,v)
+--	for _k,_v in pairs(v)do 
+--		print(_k,_v)
+--	end
+--end
+--local result = db:select("test_table", { where = { testfield = "Farting" }})
+db:close()
 
 character_db = {}
 active_clients = {}
@@ -43,6 +84,7 @@ ACTIONS = {
 -- -- src, tgt, action, type 
 
 
+
 function get_mod(n)
 	n = n - (n % 6) -- cut off remainder 
 	n = n / 6
@@ -50,9 +92,25 @@ function get_mod(n)
 end
 
 function process_login(p)
-	print("Login request from UID " .. p.uid .. " (" .. p.login, p.pass, ")")
-	if p.login == "test" and p.pass == "test" then 
+	print("Login request from UID " .. p.uid .. " (user " .. p.login ..")")
+	local _penc = sha.blake3(p.pass, MY_DB_KEY)
+	-- select from users db 
+	db = sqlite:open("db/users.db")
+	-- TODO: db errors 
+	local result = db:select("user_database", {where={user=p.login}} )
+	if result[1]==nil then 
+		-- If the login entry is not in the database, then add it as new 
+		db:execute("INSERT INTO user_database (user, password) VALUES ('" .. p.login .. "', '" .. _penc .. "');")
+		print("New user created.")
 		return true 
+	else 
+		-- login exists, comapre. 
+		print("User found. Checking password...")
+		if result[1].password == _penc then 
+			return true 
+		else 
+			return false 
+		end
 	end 
 	return false 
 end
@@ -67,7 +125,7 @@ end
 
 function process_event_queues()
 	local _elapsed = os.clock() - last_queue_time
-	if(_elapsed < 0.1)then os.execute('sleep ' .. 0.1-_elapsed) end
+	if(_elapsed < 0.1)then sleep(0.1-_elapsed) end
 	_elapsed = 0.1
 	for i=1,#event_queue do 
 		if event_queue[i] ~= nil then 
@@ -96,7 +154,7 @@ function process_event_queues()
 								
 								active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
 								active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
-								
+								active_clients[evt.src].current_character.state = STATE.NONE
 								table.remove(GAME_MAP[_char.location].active_mobs, evt.tgt) -- erase em 
 								_enm = nil 
 								-- TODO: custom respawn timers 
@@ -304,6 +362,7 @@ while 1 do
 					_new.location = 1 -- TEMP TEST! ==GAME_MAP[1]
 					active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
 					table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
+					e.peer:send(json.encode(MessagePacket:new({msg="Welcome!\nA new character has been created for you."})))
 					e.peer:send(json.encode(_new.to_blob()))
 					e.peer:send(json.encode(GAME_MAP[_new.location].make_packet())) -- and send the player the room dat
 				else 
@@ -353,15 +412,17 @@ while 1 do
 			-- LOGOUT PACKET TYPE 
 			-- 
 				-- pop uid from game map 
-				local _t = GAME_MAP[active_clients[pak.uid].current_character.location].current_players
-				for i=1,#_t do 
-					if _t[i] == pak.uid then 
-						table.remove(_t, i)
-						break 
+				if(active_clients[pak.uid])then
+					local _t = GAME_MAP[active_clients[pak.uid].current_character.location].current_players
+					for i=1,#_t do 
+						if _t[i] == pak.uid then 
+							table.remove(_t, i)
+							break 
+						end
 					end
+					active_clients[pak.uid] = nil -- std hashmap erase 
+					login_count = login_count - 1
 				end
-				active_clients[pak.uid] = nil -- std hashmap erase 
-				login_count = login_count - 1
 			end
 
 		elseif e.type == "disconnect" then 

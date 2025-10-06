@@ -2,6 +2,8 @@
 local lg = love.graphics 
 dofile = love.filesystem.load
 
+local sha = require("sha2")
+--       local your_hash = sha.sha256("your string")
 local enet = require "enet"
 local json = require "json"
 local bit = require "bit"
@@ -13,7 +15,8 @@ dofile("uid.lua")()
 dofile("c_character.lua")()
 dofile("item.lua")()
 local host = enet.host_create()
-local server = host:connect("localhost:6789")
+local ip_address="localhost:6789"
+local server = nil 
 
 USERNAME = "test"
 PASSWORD = "test"
@@ -45,9 +48,16 @@ local draw_cursor_line = false
 local current_input = ''
 local cursor_pos_x = 0
 
-local local_enemies = { 
-	
+GAMESTATE={
+    LOGIN_SCREEN = 1,
+    NORMAL_GAME = 2,
+    GET_IP = 3,
+    GET_USER=4,
+    GET_PASS=5
 }
+local CURRENT_GAME_STATE = GAMESTATE.LOGIN_SCREEN
+
+local local_enemies = {}
 
 
 function mud_print(txt, _color, _newline)
@@ -104,60 +114,99 @@ end
 local p = mud_print
 
 --
-
+local user_name_input=""
 
 function parse_input(f)
 	f = string.lower(f)
+    if CURRENT_GAME_STATE==GAMESTATE.NORMAL_GAME then 
+        -- ATTACK COMMAND 
+        if string.find(f, "att") == 1 then 
+            tgt = ""
+            tgt_i = 0
+            for k,v in pairs(local_enemies) do 
+                for token in string.gmatch(f, "[^%s]+") do 
+                    if tonumber(token) then 
+                        tgt = local_enemies[tonumber(token)]
+                        tgt_i = tonumber(token)
+                    else
+                        if #token < 3 then 
+                            p("Attack who?")
+                            return 
+                        end
+                        if string.find(string.lower(v.name), token) then 
+                            tgt_i = k
+                            tgt = v
+                        else
+                            tgt = nil 
+                        end
+                    end
+                end
+                if tgt ~= nil then 
+                    break 
+                end
+            end
+            if tgt ~= nil then 
+                --p(tgt.name)
+                p("You attack " .. tgt.name .. "!")
+                server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="ATTACK", loc=active_character.location, tgt=tgt_i})))
+            else
+                p("No target!")
+            end
 
-	-- ATTACK COMMAND 
-	if string.find(f, "att") == 1 then 
-		tgt = ""
-        tgt_i = 0
-		for k,v in pairs(local_enemies) do 
-			for token in string.gmatch(f, "[^%s]+") do 
-				if tonumber(token) then 
-					tgt = local_enemies[tonumber(token)]
-                    tgt_i = tonumber(token)
-				else
-					if #token < 3 then 
-						p("Attack who?")
-						return 
-					end
-					if string.find(string.lower(v.name), token) then 
-                        tgt_i = k
-						tgt = v
-					else
-						tgt = nil 
-					end
-				end
-			end
-			if tgt ~= nil then 
-				break 
-			end
-		end
-		if tgt ~= nil then 
-			--p(tgt.name)
-            p("You attack " .. tgt.name .. "!")
-            server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="ATTACK", loc=active_character.location, tgt=tgt_i})))
-		else
-			p("No target!")
-		end
+        -- LOOK COMMAND 
+        elseif string.find(f, "loo") == 1 or f == "l" then 
+            p("Looking around, you see:")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="LOOK", loc=active_character.location})))
+        
+        -- SAY 
+        elseif string.find(f, "say ") == 1 or string.sub(f, 1, 1) == "\"" then 
+            local d = ""
+            if string.find(f, "say ") == 1 then 
+                d = string.sub(f, 5, #f)
+            else -- "
+                d = string.sub(f, 2, #f)
+            end
+            server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
 
-	-- LOOK COMMAND 
-	elseif string.find(f, "loo") == 1 or f == "l" then 
-		p("Looking around, you see:")
-		server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="LOOK", loc=active_character.location})))
-	
-    -- SAY 
-    elseif string.find(f, "say ") == 1 or string.sub(f, 1, 1) == "\"" then 
-        local d = ""
-        if string.find(f, "say ") == 1 then 
-            d = string.sub(f, 5, #f)
-        else -- "
-            d = string.sub(f, 2, #f)
         end
-        server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
-
+    elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
+        ip_address = f 
+        if ip_address == "" then ip_address = "localhost:6789" end 
+        server = host:connect(ip_address)
+        if server == nil then 
+            p("Failed to connect!")
+        else
+            e = host:service(250)
+            if(e)then
+                if e.type=="connect"then 
+                    p("Connected: ", {0.5,1,0.5}, false)
+                    p(tostring(e.peer:connect_id()))
+                    CURRENT_GAME_STATE = GAMESTATE.GET_USER
+                end    
+            end
+        end
+    elseif CURRENT_GAME_STATE==GAMESTATE.GET_USER then 
+        user_name_input = f:gsub("%s+", "")
+        user_name_input = user_name_input:gsub("[^%w+]", "")
+        if user_name_input:len() <= 16 then 
+            p(user_name_input .. ": Please enter your PASSWORD")
+            CURRENT_GAME_STATE=GAMESTATE.GET_PASS
+        else
+            p("User name too long. Max 16 characters")
+            un_init = false 
+            CURRENT_GAME_STATE=GAMESTATE.GET_USER
+        end
+    elseif CURRENT_GAME_STATE==GAMESTATE.GET_PASS then 
+        if(f:len()>64)then
+            p("Password too long. Max 64 characters. Try again: ")
+        elseif(f:len()<6)then 
+            p("Password too short. Minimum 6 characters. Try again: ")
+        else
+            password_input = sha.sha256(f)
+            login = LoginPacket:new({uid=my_uid, login=user_name_input, pass=password_input})
+            server:send(json.encode(login))
+            CURRENT_GAME_STATE=GAMESTATE.NORMAL_GAME
+        end
     end
 end
 
@@ -219,6 +268,8 @@ end
 
 local update_canvas = true
 local fps_ctr = 0
+local login_initialized = false 
+local un_init = false 
 function love.update(dt)
     if(dt < 1/30) then love.timer.sleep((1/30) - dt) end
 
@@ -226,16 +277,30 @@ function love.update(dt)
 
     txt_blink_ctr = txt_blink_ctr + dt
 
-    -- CHECK SERVER 
-    e = host:service()
-    if e then
-        if e.type == "connect" then -- We connected, first event
-            p("Connected: ", {0.5,1,0.5}, false)
-            p(tostring(e.peer:connect_id()))
-            login = LoginPacket:new({uid=my_uid, login=USERNAME, pass=PASSWORD})
-            e.peer:send(json.encode(login))
-        elseif e.type == "receive" then -- Standard msg event 
-            process_packet(e)
+    if CURRENT_GAME_STATE == GAMESTATE.NORMAL_GAME then 
+        -- CHECK SERVER 
+        e = host:service()
+        if e then
+            if e.type == "connect" then -- We connected, first event
+                p("Connected: ", {0.5,1,0.5}, false)
+                p(tostring(e.peer:connect_id()))
+                --login = LoginPacket:new({uid=my_uid, login=USERNAME, pass=PASSWORD})
+                --e.peer:send(json.encode(login))
+            elseif e.type == "receive" then -- Standard msg event 
+                process_packet(e)
+            end
+        end
+    elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
+        -- First, process login 
+        if(login_initialized==false)then 
+            p("%rff8Welcome to SworldMud!")
+            p("Please input the IP address of your server, or\nENTER to use localhost:6789.")
+            login_initialized = true 
+        end
+    elseif CURRENT_GAME_STATE == GAMESTATE.GET_USER then 
+        if not un_init then 
+            p("OK! Please enter your USERNAME: \n (If it does not exist on the server, it will be created)")
+            un_init = true
         end
     end
     
@@ -336,10 +401,12 @@ function love.keyreleased(key, scancode, isrepeat)
 end
 
 function love.quit()
-    server:send(json.encode({type="LOGOUT", uid=my_uid}))
-    host:service()
-    --server:disconnect()
-    host:flush()
+    if server ~= nil then 
+        server:send(json.encode({type="LOGOUT", uid=my_uid}))
+        host:service()
+        --server:disconnect()
+        host:flush()
+    end
 
     return false -- false = do not abort quit()
 end

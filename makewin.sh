@@ -1,5 +1,6 @@
 rm dist.zip 
-rm ./client/*.lua 
+rm -rf ./client 
+mkdir client 
 cp ansi.lua ./client/
 cp c_character.lua ./client/
 cp conf.lua ./client/

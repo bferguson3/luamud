@@ -3,3 +3,6 @@ dist/
 client/
 *.exe
 dist.zip
+database_key
+**players.db
+**users.db 

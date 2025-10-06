@@ -1,4 +1,6 @@
 ## OSX build instructions
+### Requires luajit, enet, sqlite (luarocks recommended)
+
 1. `$ brew install lua`
 
 2. `$ brew install luarocks`
@@ -9,10 +11,14 @@
 4. `$ luarocks install enet --lua-version=5.1`
 then `$ cp <build folder>/enet.so ./`
 
+5. `$ luarocks install sqlite --lua-version=5.1`
+then `$ cp <build folder>/luv.so ./`
+
+
 ## Run Server
 `luajit server.lua`
 
-## Run Client
-`luajit client.lua`
-`lua client.lua`
 
+## Run Client
+### client.lua no longer works, use love2d 
+`love ./`
