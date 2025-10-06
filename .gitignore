@@ -4,5 +4,5 @@ client/
 *.exe
 dist.zip
 database_key
-**players.db
+**characters.db
 **users.db 

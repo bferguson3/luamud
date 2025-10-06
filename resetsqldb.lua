@@ -1,5 +1,6 @@
-
+-- Delete db/users.db and db/characters.db if they exist!
 -- RESET TABLES AFTER DELETE 
+local sqlite = require "sqlite"
 
 local db = sqlite:open("db/users.db")
 db:execute("CREATE TABLE user_database (\
@@ -7,7 +8,8 @@ db:execute("CREATE TABLE user_database (\
 	password TEXT
 );")
 db:close() 
-db = sqlite:open("db/players.db")
+
+db = sqlite:open("db/characters.db")
 db:execute("CREATE TABLE character_database (\
 	name TEXT PRIMARY KEY, \
 	user TEXT,\

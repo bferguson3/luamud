@@ -365,7 +365,7 @@ while 1 do
 	-- save any clients that are currently online every 10s
 	if second_timer_3 > CHAR_SAVE_TIMER then 
 		-- for each char logged in, 
-		db = sqlite:open("db/players.db")
+		db = sqlite:open("db/characters.db")
 		for k,v in pairs(active_clients) do 
 			-- INSERT OR REPLACE in the db 
 			db:execute(create_char_sqlstr(v.current_character))
@@ -397,7 +397,7 @@ while 1 do
 					login_count = login_count + 1
 					print("Current est no. of users: " .. login_count)
 					-- -- TODO FIXME perform SQL query here to pull characters into character_db 
-					db = sqlite:open("db/players.db")
+					db = sqlite:open("db/characters.db")
 					local result = db:select("character_database", { where = { user = pak.login }})
 					if result[1] ~= nil then 
 						print("Character found: " .. result[1].name .. "(total: " .. #result .. ")")
