@@ -104,11 +104,16 @@ function Monster:new(o)
 	o.skills = o.skills or { }
 	o.loot = o.loot or {}
     o.desc = o.desc or "A monster description"
-
-	o.refresh = function()
-		o.cur_hp = o.hp 
-		o.cur_mp = o.mp 
-		o.dead = false 
+	o.status_mods = o.status_mods or {}
+	o.get_evasion = function()
+		local _m = 0
+		for i=1,#o.status_mods do 
+			if o.status_mods[i][1].effects[1] == STATUSES.evade then 
+				_m = _m + o.status_mods[i][1].effects[2] 
+				print("Decoy attack found and applied.")
+			end 
+		end 
+		return o.evade + _m 
 	end
 
 	o.copy = function()
@@ -151,6 +156,17 @@ function Monster:new(o)
 		end
 		c.desc=o.desc
 		c.refresh = o.refresh
+		c.status_mods = {}
+		c.get_evasion = function()
+			local _m = 0
+			for i=1,#c.status_mods do 
+				if c.status_mods[i][1].effects[1] == STATUSES.evade then 
+					_m = _m + c.status_mods[i][1].effects[2] 
+					--print("Decoy attack found and applied.")
+				end 
+			end 
+			return c.evade + _m 
+		end
 		return c 
 	end
 
