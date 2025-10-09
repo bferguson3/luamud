@@ -1,0 +1,27 @@
+Die rolls: 
+
+Die rolls are returned as a list with each die result and the final modifier at the end. 
+SW2.5 requires a lot of die-face inspection, so this works better. 
+
+
+Total # implemented feats: 2 
+
+- Decoy Attack I
+- Decoy Attack II 
+Stacks 1 debuff object up to 4 times, each one has an independant 10s timer. (max -2,-8)
+Or: Dmg +2 or +8 if hits. 
+Toggled on and off by "use decoy". 
+Enemies with this feat always use it. 
+Being damaged, even 0 dmg, removes this effect. 
+Mobs: None yet
+Players: OK
+
+TODO: 
+- Targeting 
+Removes chance of stray shots (normal: 50%)
+Stray shots will change the target of your ranged attack to anyone present in the current ROOM at random. 
+
+- Dodge
+While a shield is equipped, and an attack is evaded,
+Gain Dodge Crit Bonus +1 (stacks to lowest crit threshold of 8)
+This bonus total is nullified on the next attack.

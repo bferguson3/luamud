@@ -61,6 +61,19 @@ function process_attack(_char, _enm, evt)
 		_accmod = Equipment_DB[_char.eqp_weapon].acc
 		_adddmg = Equipment_DB[_char.eqp_weapon].add
 	end
+    -- get flags for skills 
+    local decoy_i = false 
+    local decoy_ii = false 
+    for i=1,#_char.status_mods do 
+        if _char.status_mods[i][1]==Using_DecoyAttackI then 
+            decoy_i = true 
+            break
+        elseif _char.status_mods[i][1]==Using_DecoyAttackII then 
+            decoy_ii = true 
+            break
+        end
+    end
+    --
 	local _t = tot(_rl) + _lvmod + _dxmod + _accmod
 	print("Rolled " .. _t .. " (" .. _rl[1] .. ", " .. _rl[2] .. ") + " .. tostring(_lvmod+_dxmod+_accmod))
 	if (_rl[1]==1) and (_rl[2]==1) then 
@@ -72,6 +85,10 @@ function process_attack(_char, _enm, evt)
 	if (tot(_rl)==12)then _t = 999;
 		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Auto-success!!"})))
 	end 
+    -- subtract 2 if decoy 
+    if decoy_i or decoy_ii then 
+        _t = _t - 2 
+    end
 	if _t >= _enm.get_evasion() then 
 		local _dmg = 0
 		local _strike = 0
@@ -119,10 +136,10 @@ function process_attack(_char, _enm, evt)
 				active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="You %rf99strike %rfffthe %r0f2" .. _enm.name .. "%rfff with your fists for %rf88" .. _dmg .. " %rfffdamage!"})))
 			end
 		end
-
+        -- add 2 or 8 if decoy atk 
+        if decoy_i then _dmg = _dmg + 2 elseif decoy_ii then _dmg = _dmg + 8 end 
 		-- DEAL DAMAGE TO ENEMY 
         damage(_enm, _dmg)
-		--_enm.cur_hp = _enm.cur_hp - _dmg 
 
 		-- PROCESS ENEMY DEATH 
 		if(_enm.cur_hp <= 0)then 
@@ -150,9 +167,13 @@ function process_attack(_char, _enm, evt)
 			-- pop is done when we return. ..
 		end
 	else
-        -- TODO: Only apply this if the user has Decoy Attack I ... 
-        Effect_DecoyAttackI.on_apply(_enm) 
-		-- enmy evasion too high ! 
+        -- Only apply this if the user has a certain skill active...
+        if decoy_i then 
+            Effect_DecoyAttackI.on_apply(_enm) 
+        elseif decoy_ii then 
+            Effect_DecoyAttackII.on_apply(_enm)
+        end
+        -- enmy evasion too high ! 
         active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Missed!!"})))
 	end
 	

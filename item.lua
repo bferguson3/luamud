@@ -41,7 +41,7 @@ function Equipment:new(o)
 	o.price = o.price or 30 
 	o.other = o.other or ""
 	o.desc = o.desc or "A small stabbing instrument."
-	o.elements = o.elements or { ELEMENTS.Physical, ELEMENTS.Slashing }
+	o.elements = o.elements or { ELEMENTS.Physical, ELEMENTS.Slashing, ELEMENTS.Melee }
 
 	o.copy = function()
 		local c = {}

@@ -61,7 +61,9 @@ local local_enemies = {}
 
 
 function mud_print(txt, _color, _newline)
-    _color=_color or {1, 1, 1}
+    local txt = txt or ""
+    local _newline = _newline or true 
+    local _color =_color or {1, 1, 1}
     if _newline == false then _newline = 2 end 
     if txt==nil then 
         return 
@@ -88,7 +90,6 @@ function mud_print(txt, _color, _newline)
                     tonumber(string.sub(_lr,2,2),16)/15,
                     tonumber(string.sub(_lr,3,3),16)/15}
                 txt = string.sub(txt, 1, i-1) .. string.sub(txt, i+4, #txt)
-                
             end
         else
             table.insert(text_buffer, { c = _c, x = current_col, y = current_line, r = _color} )
@@ -119,6 +120,9 @@ local user_name_input=""
 function parse_input(f)
 	f = string.lower(f)
     if CURRENT_GAME_STATE==GAMESTATE.NORMAL_GAME then 
+    -- COMMAND INPUT PROCESSING 
+    -- 
+
         -- ATTACK COMMAND 
         if string.find(f, "att") == 1 then 
             tgt = ""
@@ -168,6 +172,22 @@ function parse_input(f)
             end
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
 
+        -- USE (generic)
+        elseif string.find(f, "use ") == 1 then 
+            local d = string.sub(f, 5, #f) 
+            if string.find(d, "decoy") == 1 then 
+                -- Use Decoy Attk 
+                for i=1,#active_character.feats do 
+                    if active_character.feats[i] == FEATS.DecoyAttackI then 
+                        server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="USE", txt="Decoy Attack I"})))
+                        break
+                    elseif active_character.feats[i] == FEATS.DecoyAttackII then  
+                        server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="USE", txt="Decoy Attack II"})))
+                        break
+                    end 
+                end 
+            end
+        --
         end
     elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
         ip_address = f 

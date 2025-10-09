@@ -5,6 +5,23 @@ STATE = {
 	IN_COMBAT = 1
 }
 
+FEATS = { 
+	DecoyAttackI = 1,
+	DecoyAttackII = 2
+}
+
+Feat={}
+function Feat:new(o)
+	local o = o or {}
+	setmetatable(o, self)
+	self.__index = self 
+	-- 
+	o.desc = o.desc or ""
+	return o 
+end
+Feat_DB={}
+Feat_DB[FEATS.DecoyAttackI]=Feat:new({desc="Passive. -2 to accuracy, +2 to damage. Enemy takes -1 (stacks to -4) evade on miss for 10s."})
+Feat_DB[FEATS.DecoyAttackII]=Feat:new({desc="Passive. -2 to accuracy, +8 to damage. Enemy takes -2 (stacks to -8) evade on miss for 10s."})
 
 Character={} -- class Character
 -- These are pulled from a SQLiteDB querying by user "owner" 
@@ -74,13 +91,13 @@ function Character:new(o)
 	-- inventory (aka loot) by PTR
 	o.inventory = o.inventory or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
 	-- eqp always by index 
-	o.eqp_bag = o.eqp_bag or { {0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0},{0,0}}
+	o.eqp_bag = o.eqp_bag or { 0,0,0,0,0,0,0,0,0,0 }
 	-- BY INDEX!
 	o.eqp_weapon = o.eqp_weapon or 1 -- Equipment_DB[1]
 	o.eqp_armor = o.eqp_armor or 0 
 	o.eqp_shield = o.eqp_shield or 0 
 	o.eqp_accessory = o.eqp_accessory or { 0,0,0,0,0,0,0,0,0 }
-
+	o.status_mods = o.status_mods or { }
 	o.experience = o.experience or 0 
 
 	o.get_level = function(sk)
@@ -130,10 +147,10 @@ function Character:new(o)
 		end
 		_me.eqp_bag = {}
 		for i=1,10 do 
-			if o.eqp_bag[i][1] ~= 0 then 
-				_me.eqp_bag[i] = { Equipment_DB[o.eqp_bag[i][1]].name, o.eqp_bag[i][2] }
+			if o.eqp_bag[i] ~= 0 then 
+				_me.eqp_bag[i] = Equipment_DB[o.eqp_bag[i]].name
 			else 
-				_me.eqp_bag[i] = { 0, 0}
+				_me.eqp_bag[i] = ""
 			end
 		end
 		_me.eqp_weapon = o.eqp_weapon 
@@ -165,7 +182,11 @@ function Character:new(o)
 		o.spi = b.spi 
 		o.spoken_lang = b.spoken_lang
 		o.written_lang = b.written_lang
-		o.feats = b.feats 
+		o.feats = {}
+		for i=1,#b.feats do 
+			table.insert(o.feats, b.feats[i])
+		end
+		--o.feats = b.feats 
 		o.hp = b.hp 
 		o.cur_hp = b.cur_hp 
 		o.mp = b.mp 
@@ -180,7 +201,7 @@ function Character:new(o)
 		end
 		o.eqp_bag = {}
 		for i=1,10 do 
-			o.eqp_bag[i] = { b.eqp_bag[i][1],b.eqp_bag[i][2] }
+			o.eqp_bag[i] = b.eqp_bag[i]
 		end
 		o.eqp_weapon = b.eqp_weapon 
 		o.eqp_armor = b.eqp_armor 
@@ -252,14 +273,8 @@ function Character:new(o)
 			i = i + 2
 		end
 		o.eqp_bag={}
-		tc = {}
 		for num in b.eqp_bag:gmatch("%d+")do 
-			table.insert(tc, num)
-		end
-		i = 1
-		while i < #tc do
-			table.insert(o.eqp_bag, {tonumber(tc[i]), tonumber(tc[i+1])})
-			i = i + 2
+			table.insert(o.eqp_bag, tonumber(num))
 		end
 		o.derive()
 		-- todo 
@@ -347,6 +362,7 @@ VALUES (\
     for i=1,#o.feats do 
         _s = _s .. o.feats[i] .. ','
     end
+	_s = _s:sub(1, #_s-1)
     _s = _s .. "]',\
 " .. o.hp .. ",\
 " .. o.cur_hp .. ",\
@@ -363,9 +379,9 @@ VALUES (\
     _s = string.sub(_s, 1, #_s-1) -- cut last , 
     _s = _s .. "]',\
 '["
-    for i=1,#o.eqp_bag do
-        _s = _s .. '[' .. o.eqp_bag[i][1] .. ',' .. o.eqp_bag[i][2] .. '],'
-    end 
+    for i=1,#o.eqp_bag do 
+        _s = _s .. o.eqp_bag[i] .. ','
+    end
     _s = string.sub(_s, 1, #_s-1) -- cut last , 
     _s = _s .. "]',\
 " .. o.eqp_weapon .. ",\

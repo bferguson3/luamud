@@ -3,9 +3,7 @@ local json = require "json"
 local sqlite = require 'sqlite.db'
 local sha = require("sha2")
 dofile("arr.lua")
-
 dofile("sleep.lua")
---       local your_hash = sha.sha256("your string")
 dofile("enums.lua")
 dofile("packets.lua")
 dofile("ansi.lua")
@@ -15,6 +13,7 @@ dofile("location.lua")
 dofile("striketable.lua")
 dofile("roll.lua")
 dofile("c_statuseffect.lua")
+
 -- LOAD DATABASE KEY 
 local MY_DB_KEY = nil
 local dbkf = io.open("database_key", "rb")
@@ -26,6 +25,7 @@ if MY_DB_KEY == nil then
 	print("database_key not found. quitting")
 	quit()
 end
+
 -- VERYFIY MONSTER DB 
 dofile("monster.lua")
 ct = 0
@@ -33,6 +33,7 @@ for k,v in pairs(Monster_DB)do
 	ct = ct + 1
 end
 print(ct .. " monsters loaded.")
+
 -- VERIFY ITEM DB 
 dofile("item.lua")
 ct = 0
@@ -41,19 +42,7 @@ for k,v in pairs(Treasure_DB)do
 end
 print(ct .. " treasures loaded.")
 
-local db = sqlite:open("db/users.db")
---local testchar = Character:new( { user='test', body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
---print(create_char_sqlstr(testchar))
---local result = db:select("character_database", { where = { gender = "Male"  }})
---for k,v in pairs(result)do 
---	print(k,v)
---	for _k,_v in pairs(v)do 
---		print(_k,_v)
---	end
---end
---local result = db:select("test_table", { where = { testfield = "Farting" }})
-db:close()
-
+local db = nil 
 character_db = {}
 active_clients = {}
 
@@ -62,11 +51,6 @@ math.randomseed(os.clock())
 GAME_MAP={}
 -- test loc 
 dofile("scenario.lua")
-
--- Start server:
-print("Opening LUAMUD server on 6789...")
-local host = enet.host_create("*:6789")
-print("OK.")
 
 local second_timer = os.clock()
 local second_timer_2 = os.clock()
@@ -87,8 +71,6 @@ ACTIONS = {
 -- "PROCESS COMBAT ROUND"
 -- -- src, tgt, action, type 
 
-
-
 function get_mod(n)
 	n = n - (n % 6) -- cut off remainder 
 	n = n / 6
@@ -96,6 +78,11 @@ function get_mod(n)
 end
 
 dofile("combat.lua")
+
+-- Start server:
+print("Opening LUAMUD server on 6789...")
+local host = enet.host_create("*:6789")
+print("OK.")
 
 function process_login(p)
 	print("Login request from UID " .. p.uid .. " (user " .. p.login ..")")
@@ -174,7 +161,6 @@ function process_event_queues()
 								GAME_MAP[_char.location].active_mobs[evt.tgt].dead = true -- kill em 
 								-- TODO: do this right 
 								table.insert(to_dl, i)
-								--table.remove(event_queue, i)
 								-- TODO: custom respawn timers 
 								-- src = index of enemy that died, tgt = location to spawn 
 								table.insert(event_queue, { type="respawn", src=evt.tgt, tgt=_char.location, action=nil, timer=60 })
@@ -183,25 +169,17 @@ function process_event_queues()
 							event_queue[i].timer = 7 - (_char.agi/6) -- 7 seconds minus agi/6 (we dont use mod here for granularity)
 							if event_queue[i].timer < 1 then event_queue[i].timer = 1 end 
 						end
-						-- do not delete until enemy is dead/nil
-						--if(_enm == nil)then event_queue[i]=nil end 
-						-- and delete it if not needed 
-						--event_queue[i] = nil 
+						
 					else 
 						-- the client must have logged out 
 						-- TODO: do this right 
-						--table.remove(event_queue, i)
 						table.insert(to_dl, i)
 					end
 				elseif evt.type == "respawn" then 
 				--RESPAWN EVENT 
 				-- 
-					--table.insert(GAME_MAP[evt.tgt].active_mobs, GAME_MAP[evt.tgt].mobs[evt.src].copy())
-					--GAME_MAP[evt.tgt].active_mobs[evt.src].refresh()
 					refresh_mob(GAME_MAP[evt.tgt].active_mobs[evt.src]) 
 					send_to_room(evt.tgt, GAME_MAP[evt.tgt].mobs[evt.src].name .. " appears.")
-					-- TODO: do this right 
-					--table.remove(event_queue, i)
 					table.insert(to_dl, i)
 				end
 			end
@@ -222,21 +200,22 @@ function process_status_effects()
 			local rl = {} -- to delete
 			for s=1,#GAME_MAP[i].active_mobs[j].status_mods do -- for every monster that exists, check if it has statuses
 				local se = GAME_MAP[i].active_mobs[j].status_mods[s]
-				se[2] = se[2] - 0.1 -- if so, decrement them by the event timer value  
-				if se[2] <= 0 then 
-					table.insert(rl, s) -- add index to to_delete array 
-				else -- otherwise, its still acive, and may have a loop 
-					if se[3] > 0 then -- if [3]>-1 its a repeating event 
-						se[3]=se[3]-0.1 -- decrement it too 
-						if se[3]<=0 then -- and execute if needed
-							se[3]=se[1].looptimer -- reset timer 
-							se[1].on_loop(GAME_MAP[i].active_mobs[j]) -- execute onloop event 
-						end
+				if se[2]>=0 then  -- not an infinite status 
+					se[2] = se[2] - 0.1 -- if so, decrement them by the event timer value  
+					if se[2] <= 0 then 
+						table.insert(rl, s) -- add index to to_delete array 
+					end 
+				end
+					-- otherwise, its still acive, and may have a loop 
+				if se[3] >= 0 then -- if [3]>-1 its a repeating event 
+					se[3]=se[3]-0.1 -- decrement it too 
+					if se[3]<=0 then -- and execute if needed
+						se[3]=se[1].looptimer -- reset timer 
+						se[1].on_loop(GAME_MAP[i].active_mobs[j]) -- execute onloop event 
 					end
 				end
 			end
 			for b=1,#rl do -- delete dead status effects !
-				--table.remove(GAME_MAP[i].active_mobs[j].status_mods, rl[b])
 				arr_remove_i(GAME_MAP[i].active_mobs[j].status_mods, rl[b])
 			end
 		end
@@ -368,6 +347,42 @@ while 1 do
 						-- TODO fix this  
 						send_to_room(1, active_clients[pak.uid].current_character.name .. " says, \"" .. pak.txt .. "\"")
 
+					elseif pak.cmd == "USE" then 
+						-- first check if decoy is on 
+						print(pak.txt)
+						if string.find(pak.txt,"Decoy Attack")==1 then 
+							-- first make sure the featexists 
+							local found = false 
+							for k=1,#active_clients[pak.uid].current_character.feats do 
+								if active_clients[pak.uid].current_character.feats[k] == FEATS.DecoyAttackI then 
+									found = true 
+								elseif active_clients[pak.uid].current_character.feats[k] == FEATS.DecoyAttackII then 
+									found = true 
+								end 
+							end 
+							if not found then 
+								e.peer:send(json.encode(MessagePacket:new({msg="You do not know Decoy Attack."})))
+							else 
+								found = false 
+								for ii=1,#active_clients[pak.uid].current_character.status_mods do 
+									if string.find(active_clients[pak.uid].current_character.status_mods[ii][1].name,"Decoy Attack")==1 then 
+										arr_remove_i(active_clients[pak.uid].current_character.status_mods, ii)-- if so, remove it 
+										e.peer:send(json.encode(MessagePacket:new({msg="You stop using Decoy Attack."})))
+										found = true 
+									end
+								end
+								-- if not on, enable it 
+								if not found then 
+									if pak.txt == "Decoy Attack I" then 
+										table.insert(active_clients[pak.uid].current_character.status_mods, { Using_DecoyAttackI, -1, -1 })
+										e.peer:send(json.encode(MessagePacket:new({msg="You are now using Decoy Attack I."})))
+									elseif pak.txt == "Decoy Attack II" then 
+										table.insert(active_clients[pak.uid].current_character.status_mods, { Using_DecoyAttackII, -1, -1 })
+										e.peer:send(json.encode(MessagePacket:new({msg="You are now using Decoy Attack II."})))
+									end
+								end
+							end
+						end
 					else 
 					-- ??? 
 						for k,v in pairs(pak) do 

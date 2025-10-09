@@ -105,12 +105,13 @@ function Monster:new(o)
 	o.loot = o.loot or {}
     o.desc = o.desc or "A monster description"
 	o.status_mods = o.status_mods or {}
+	o.current_tgt = o.current_tgt or nil 
 	o.get_evasion = function()
 		local _m = 0
 		for i=1,#o.status_mods do 
 			if o.status_mods[i][1].effects[1] == STATUSES.evade then 
 				_m = _m + o.status_mods[i][1].effects[2] 
-				print("Decoy attack found and applied.")
+				--print("Decoy attack found and applied.")
 			end 
 		end 
 		return o.evade + _m 
@@ -167,6 +168,7 @@ function Monster:new(o)
 			end 
 			return c.evade + _m 
 		end
+		c.current_tgt = nil 
 		return c 
 	end
 

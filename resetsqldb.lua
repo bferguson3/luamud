@@ -5,7 +5,7 @@ local sqlite = require "sqlite"
 local db = sqlite:open("db/users.db")
 db:execute("CREATE TABLE user_database (\
 	user TEXT PRIMARY KEY, \
-	password TEXT
+	password TEXT\
 );")
 db:close() 
 
