@@ -1,6 +1,6 @@
 local json = require "json"
 
-STATE = { 
+STATE = { -- ONLY USE THIS FOR COMBAT FLAG !!!! 
 	NONE = 0,
 	IN_COMBAT = 1
 }
@@ -184,6 +184,7 @@ function Character:new(o)
 		o.written_lang = b.written_lang
 		o.feats = {}
 		for i=1,#b.feats do 
+			--print(b.feats[i])
 			table.insert(o.feats, b.feats[i])
 		end
 		--o.feats = b.feats 

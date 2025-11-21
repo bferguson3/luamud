@@ -35,9 +35,10 @@ function Equipment:new(o)
 	o.stance = o.stance or STANCES.ONEHAND
 	o.acc = o.acc or 0 
 	o.rank = o.rank or "B"
-	o.power = o.power or 1 
+	o.power = o.power or 1 -- or defense, for armor 
 	o.crit = o.crit or 10 
 	o.add = o.add or 0 
+	o.min_str = o.min_str or 0 
 	o.price = o.price or 30 
 	o.other = o.other or ""
 	o.desc = o.desc or "A small stabbing instrument."
@@ -55,7 +56,11 @@ function Equipment:new(o)
 		c.other = o.other 
 		c.desc = o.desc  
 		c.rank = o.rank 
-		c.elements = o.elements -- TEST 
+		c.min_str = o.min_str 
+		c.elements = {}--o.elements -- TEST 
+		for e in o.elements do 
+			table.insert(c.elements, e)
+		end
 		return c
 	end
 	return o 

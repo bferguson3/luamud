@@ -38,9 +38,9 @@ function damage(_enm, _dmg)
     _enm.cur_hp = _enm.cur_hp - _dmg 
     
     -- check if there is any Decoy Attack x, if so, remove it 
-    local r={}
+	local r={}
     for i=1,#_enm.status_mods do 
-        if _enm.status_mods[i][1].name:find("Decoy Attack")==0 then 
+        if _enm.status_mods[i][1].name:find("Decoy Attack")==1 then 
             table.insert(r, i)--_enm.status_mods[i]
         end
     end
@@ -48,12 +48,131 @@ function damage(_enm, _dmg)
         arr_remove_i(_enm.status_mods, r[i])
     end
 end
+
 -- combat stuff 
+function start_fighting(mob)
+	--print(mob.name .. " started fighting!")
+	-- if the mob isnt already "in combat", set that flag 
+	mob.in_combat = true 
+	-- and then start an event after 1s 
+	print(#event_queue)
+	table.insert(event_queue, { type="combat_round", src=mob, tgt=mob.current_tgt, action=ACTIONS.MOB_ATTACK, timer=1 } )
+	print(#event_queue)
+end
+
+function process_nme_attack(mob, char, tgt)
+	-- mob attack is the TARGET rolling evasion vs ur attk 
+	local _rl = roll(2, 6, 0)
+	-- auto success or fail ? 
+	local autoyes = false 
+	local autono = false 
+	if tot(_rl) == 2 then 
+		autono = true 
+	elseif tot(_rl) == 12 then 
+		autoyes = true
+	end
+	-- monsters can have Decoy Attack also!
+	-- get flags for skills 
+    local decoy_i = false 
+    --local decoy_ii = false 
+    for i=1,#mob.skills do 
+        if mob.skills[i]==MOBSKILLS.DecoyAttackI then 
+            decoy_i = true 
+            break
+		end
+		-- decoy 2? 
+    end
+
+    --
+	local _acc = mob.acc 
+	if decoy_i then _acc = _acc - 2 end 
+	-- further modify _acc for decoyattack: for each stack on the tgt, _acc += 1 or 2.
+	for i=1,#char.status_mods do 
+		if char.status_mods[i][1] == Effect_DecoyAttackI then 
+			_acc = _acc + 1
+		end -- again, no evidence we need to code for DecoyAttackII yet 
+	end
+	
+	if autoyes then 
+		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="Evasion check vs " .. mob.name .. ": Auto-success!"})))
+		-- add Decoy Attack debuff to player bc missed 
+		if decoy_i then Effect_DecoyAttackI.on_apply(char) end 
+		return
+	end
+	if autono then 
+		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="Evasion check vs " .. mob.name .. ": Auto-fail!! %r999(Gained 50 XP.)"})))
+		char.experience = char.experience + 50 
+	end
+
+	-- evasion check is fighter, grappler, fencer + agility 
+	local _evlv = 0
+	local _mod = 0
+	if not autono then -- only care if we didnt fail 
+		for i=1,#char.classes do 
+			if char.classes[1] == SKILLS.FIGHTER then 
+				if char.classes[2] > _evlv then _evlv = char.classes[2] end
+			elseif char.classes[1] == SKILLS.FENCER then 
+				if char.classes[2] > _evlv then _evlv = char.classes[2] end
+			elseif char.classes[1] == SKILLS.GRAPPLER then 
+				if char.classes[2] > _evlv then _evlv = char.classes[2] end
+			end
+		end
+		_mod = _evlv + get_mod(char.dex) 
+	end
+	if (tot(_rl) + _mod) > _acc then -- Dodged!
+		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg=mob.name .. " attacked, but you dodged swiftly!"})))
+		if decoy_i then Effect_DecoyAttackI.on_apply(char) end 
+		return
+	end
+	-- autono or failed to dodge 
+	local _dmg = tot(roll(mob.dmg[1], mob.dmg[2], mob.dmg[3]))
+	if decoy_i then _dmg = _dmg + 2 end -- DecoyAttackI
+	-- defense is armor only 
+	-- TODO: FOr now, just armor and shield. 
+	local _def = 0 
+	if char.eqp_armor ~= 0 then 
+		_def = _def + Equipment_DB[char.eqp_armor].power 
+	end
+	if char.eqp_shield ~= 0 then 
+		_def = _def + Equipment_DB[char.eqp_shield].power
+	end
+
+	_dmg = _dmg - _def 
+	if (_dmg < 0) then _dmg = 0 end 
+	-- finally, deal dmg.. 
+	active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg=mob.name .. " strikes you for " .. tostring(_dmg) .. " damage!"})))
+	damage(char, _dmg)
+
+	-- TODO update player packet locally ! 
+	
+	if char.cur_hp < 0 then 
+		-- DEATH 
+		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="You're dead, but luckily it's not programmed yet."})))
+		-- 
+	end
+end
+
+
+
 -- Specifically for Player Against Enemy attacks 
+-- MELEE ONLY 
+-- NEED TO FIX FOR RANGE AND THROW 
 function process_attack(_char, _enm, evt)
 
 	local _rl = roll(2, 6, 0)
-	local _lvmod = _char.get_level(SKILLS.FIGHTER)
+	
+	local _lvmod = 0
+	local _evlv = 0
+	for i=1,#_char.classes do 
+		if _char.classes[1] == SKILLS.FIGHTER then 
+			if _char.classes[2] > _evlv then _evlv = _char.classes[2] end
+		elseif _char.classes[1] == SKILLS.FENCER then 
+			if _char.classes[2] > _evlv then _evlv = _char.classes[2] end
+		elseif _char.classes[1] == SKILLS.GRAPPLER then 
+			if _char.classes[2] > _evlv then _evlv = _char.classes[2] end
+		end
+	end
+	_lvmod = _evlv 
 	local _dxmod = get_mod(_char.dex) 
 	local _accmod = 0
 	local _adddmg = 0
@@ -78,28 +197,28 @@ function process_attack(_char, _enm, evt)
 	print("Rolled " .. _t .. " (" .. _rl[1] .. ", " .. _rl[2] .. ") + " .. tostring(_lvmod+_dxmod+_accmod))
 	if (_rl[1]==1) and (_rl[2]==1) then 
 		_t = 0 
-		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Auto-fail!! %r999(Gained 50 XP.)"})))
+		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Attack: Auto-fail!! %r999(Gained 50 XP.)"})))
 		_char.experience = _char.experience + 50 
 		return
 	end 
 	if (tot(_rl)==12)then _t = 999;
-		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Auto-success!!"})))
+		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Attack: Auto-success!!"})))
 	end 
     -- subtract 2 if decoy 
     if decoy_i or decoy_ii then 
         _t = _t - 2 
     end
-	if _t >= _enm.get_evasion() then 
+	if _t >= _enm.get_evasion() then -- Hit !
 		local _dmg = 0
 		local _strike = 0
 		local _crit = false 
 		local _sr = roll(2, 6, 0)
-		_strike = tot(_sr)-2
+		_strike = tot(_sr)-2 -- this might be -1? is it an index?
 		if(_char.eqp_weapon>0)then
 			-- USING A WEAPON 
 			if _strike > 0 then 
 				_dmg = strike_table[Equipment_DB[_char.eqp_weapon].power+1][_strike] -- index 
-			else _dmg=-1 end
+			else _dmg=-1 end -- fumble 
 			if((tot(_sr))>=Equipment_DB[_char.eqp_weapon].crit) and (_dmg>0) then _crit=true end 
 			if _dmg < 0 then 
 				active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Fumbled! No damage!"})))
@@ -174,7 +293,7 @@ function process_attack(_char, _enm, evt)
             Effect_DecoyAttackII.on_apply(_enm)
         end
         -- enmy evasion too high ! 
-        active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Missed!!"})))
+        active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="You missed!!"})))
 	end
 	
 end

@@ -33,6 +33,8 @@ local TEXT_SPD = 10
 local current_line = 0
 local MAX_CHAR_WIDTH = 80
 local MAX_CHAR_HEIGHT = 24
+local intResolutionX = 640
+local intResolutionY = 400
 local current_col = 0
 local text_buffer = {}
 --char_ex = 
@@ -173,20 +175,30 @@ function parse_input(f)
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
 
         -- USE (generic)
-        elseif string.find(f, "use ") == 1 then 
+        elseif string.find(f, "use") == 1 then 
             local d = string.sub(f, 5, #f) 
+
+            local used = false
+
+            -- Use Decoy Attk 
             if string.find(d, "decoy") == 1 then 
-                -- Use Decoy Attk 
                 for i=1,#active_character.feats do 
                     if active_character.feats[i] == FEATS.DecoyAttackI then 
                         server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="USE", txt="Decoy Attack I"})))
+                        used = true
                         break
                     elseif active_character.feats[i] == FEATS.DecoyAttackII then  
                         server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="USE", txt="Decoy Attack II"})))
+                        used = true
                         break
                     end 
-                end 
+                end
             end
+
+            if not used then 
+                p("Use what?")
+            end
+
         --
         end
     elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
@@ -333,6 +345,8 @@ function love.update(dt)
         end
     end
 
+    -- DRAW
+    --
     -- draw text screen to canvas during main loop 
     if(update_canvas)then
     lg.setCanvas(text_canvas)
@@ -348,6 +362,8 @@ function love.update(dt)
     lg.setCanvas()
     update_canvas = false 
     end
+    --
+    --
 
     -- flicker txt line 
     if txt_blink_ctr > line_blink_spd then 
@@ -365,19 +381,21 @@ function love.draw()
 
     lg.clear(0, 0, 0) -- cls 
     
-    lg.draw(text_canvas) -- screen
+    scaleX = intResolutionX / 640
+    scaleY = intResolutionY / 400
+    lg.draw(text_canvas, 0, 0, 0, scaleX, scaleY) -- screen
 
     lg.setColor(1, 1, 1)
-    lg.line(0, 400-16, 640, 400-16) -- input rule 
+    lg.line(0, (400-16)*scaleY, 640*scaleX, (400-16)*scaleY) -- input rule 
 
-    lg.print("> ", 0, 400-16)
+    lg.print("> ", 0, (400-16)*scaleY, 0, scaleX, scaleY)
     for _i=0,#current_input do -- input text 
-        lg.print(string.sub(current_input, _i, _i), 8 + (_i * 8), 384)
+        lg.print(string.sub(current_input, _i, _i), (8 + (_i * 8))*scaleX, 384*scaleY, 0, scaleX, scaleY)
     end
 
     cursor_pos_x = #current_input
     if draw_cursor_line then  -- underline 
-        lg.line((cursor_pos_x * 8) + 16, 399, (cursor_pos_x * 8) + 24, 399)
+        lg.line(((cursor_pos_x * 8) + 16)*scaleX, scaleY*399, ((cursor_pos_x * 8) + 24)*scaleX, scaleY*399)
     end
 
 end
@@ -418,6 +436,11 @@ function love.keyreleased(key, scancode, isrepeat)
     if scancode == "rshift" or scancode == "lshift" then 
         IS_SHIFT = false 
     end
+end
+
+function love.resize(w, h)
+    intResolutionX = w
+    intResolutionY = h 
 end
 
 function love.quit()

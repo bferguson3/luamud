@@ -92,7 +92,7 @@ function Monster:new(o)
 	o.move = o.move or 10 -- unused?
 	o.fort = o.fort or 1 -- roll these
 	o.will = o.will or 1 
-	o.acc = o.acc or 1 -- roll!
+	o.acc = o.acc or 10 
 	o.dmg = o.dmg or { 2, 6, 0 } -- 2d+0
 	o.evade = o.evade or 1 -- roll!
 	o.def = o.def or 1 -- dmg mitigation 
@@ -116,9 +116,11 @@ function Monster:new(o)
 		end 
 		return o.evade + _m 
 	end
+	o.in_combat = o.in_combat or false
 
-	o.copy = function()
+	o.copy = function(id)
 		local c = {}
+		c.id = id or 0
 		c.name=o.name 
 		c.lv=o.lv 
 		c.type=o.type
@@ -169,6 +171,7 @@ function Monster:new(o)
 			return c.evade + _m 
 		end
 		c.current_tgt = nil 
+		c.in_combat = false 
 		return c 
 	end
 

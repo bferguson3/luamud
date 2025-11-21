@@ -9,6 +9,6 @@ in with a friendly-ish stare.",
 		Monster_DB.Goblin 
 	},
 	active_mobs = {
-		Monster_DB.Goblin.copy(),
-		Monster_DB.Goblin.copy()
+		Monster_DB.Goblin.copy(1),
+		Monster_DB.Goblin.copy(2)
 	}})

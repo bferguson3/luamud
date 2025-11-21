@@ -88,7 +88,8 @@ ELEMENTS = {
 	Healing = 12,
 	Evasion = 13, -- penalty to dodge
 	Melee = 14,
-	Ranged = 15
+	Ranged = 15,
+	NonMetal = 16
 }
 
 ITEMTYPE = { 
