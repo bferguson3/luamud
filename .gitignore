@@ -6,3 +6,6 @@ dist.zip
 database_key
 **characters.db
 **users.db 
+client 
+*.a 
+log.txt

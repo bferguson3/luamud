@@ -20,7 +20,7 @@ end
 --
 
 function make_UID()
-	math.randomseed(os.clock())
+	math.randomseed(os.time())
 	local uid = ""
 	local _i = 0
 	while _i < 16 do 

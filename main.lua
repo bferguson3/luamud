@@ -290,7 +290,7 @@ function love.load()
 
     text_canvas = lg.newCanvas(640, 400)
 
-    math.randomseed(os.clock())
+    math.randomseed(os.time())
 
     for i=1,(80*25) do -- insert screen as blank 
         table.insert(text_screen, { '', {1, 1, 1} } )

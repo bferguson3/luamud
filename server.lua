@@ -46,22 +46,23 @@ local db = nil
 character_db = {}
 active_clients = {}
 
-math.randomseed(os.clock())
+math.randomseed(os.time())
 
 GAME_MAP={}
 -- test loc 
 dofile("scenario.lua")
 
-local second_timer = os.clock()
-local second_timer_2 = os.clock()
-local last_queue_time = os.clock()
+local second_timer = os.time()
+local second_timer_2 = os.time()
+local last_queue_time = os.time()
 local SEED_TIMER = 300
 local PRUNE_TIMER = 600
+local LOGOUT_LIMIT_TMR = 60
 local EVT_QUEUE_LEN = 5
 event_queue={}
 local login_count = 0
 local next_queue = 1
-local second_timer_3 = os.clock()
+local second_timer_3 = os.time()
 local CHAR_SAVE_TIMER = 30
 
 ACTIONS = { 
@@ -122,7 +123,7 @@ function send_to_room(_ri, _s)
 end
 
 function process_event_queues()
-	local _elapsed = os.clock() - last_queue_time
+	local _elapsed = os.time() - last_queue_time
 	if(_elapsed < 0.1)then 
 		sleep(0.1 - _elapsed) 
 		second_timer = second_timer + 0.1 - _elapsed
@@ -139,81 +140,84 @@ function process_event_queues()
 				if evt.type == "combat_round" then 
 					-- COMBAT EVENT 
 					-- 
-					--if not active_clients[evt.src] then < er.. investigate later...
-						-- the client must have logged out 
-						-- TODO: do this right < ? i think i am 
-						--table.insert(to_dl, i)
-						
-						-- perform event 
-						
-						-- src, tgt, action 
 					if(evt.action == ACTIONS.STD_ATTACK)then 
 					-- NORMAL ATTACK EVT 
-						local _char = active_clients[evt.src].current_character
-						local _enm = GAME_MAP[_char.location].active_mobs[evt.tgt]	
-						-- resolve 
-						print("attack of " .. evt.src .. " vs " .. _enm.name)
-						process_attack(_char, _enm, evt.src)
-
-						-- Death resolve part 2: 
-						if _enm.cur_hp <= 0 then 
-							-- broadcast to entire room 
-							send_to_room(_char.location, _enm.name .. " %rfaaperished%rfff!!")
-							
-							active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
-							active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
-							active_clients[evt.src].current_character.state = STATE.NONE
-							GAME_MAP[_char.location].active_mobs[evt.tgt].dead = true -- kill em 
-							-- TODO: do this right < idk what this means
+						if(active_clients[evt.src] == nil) then 
 							table.insert(to_dl, i)
-							-- TODO: custom respawn timers 
-							-- src = index of enemy that died, tgt = location to spawn 
-							table.insert(event_queue, { type="respawn", src=evt.tgt, tgt=_char.location, action=nil, timer=60 })
-						else -- Now: the enemy has to attack back!
-							local _mob = GAME_MAP[_char.location].active_mobs[evt.tgt]
-							-- does it already have a target? 
-							if(_mob.current_tgt == nil)then
-							-- if not, give it: 
-								_mob.current_tgt = evt.src --active_clients[evt.src].current_character
-							else -- if so, TODO check their Hate scores
-								_ = 0 -- 
+							print("Removed " .. evt.src .. "from active users...")
+						else 
+							local _char = active_clients[evt.src].current_character
+							local _enm = GAME_MAP[_char.location].active_mobs[evt.tgt]	
+							-- resolve 
+							print("attack of " .. evt.src .. " vs " .. _enm.name)
+							process_attack(_char, _enm, evt.src)
+
+							-- Death resolve part 2: 
+							if _enm.cur_hp <= 0 then 
+								-- broadcast to entire room 
+								send_to_room(_char.location, _enm.name .. " %rfaaperished%rfff!!")
+								
+								active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
+								active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
+								active_clients[evt.src].current_character.state = STATE.NONE
+								GAME_MAP[_char.location].active_mobs[evt.tgt].dead = true -- kill em 
+								-- TODO: do this right < idk what this means
+								table.insert(to_dl, i)
+								-- TODO: custom respawn timers 
+								-- src = index of enemy that died, tgt = location to spawn 
+								table.insert(event_queue, { type="respawn", src=evt.tgt, tgt=_char.location, action=nil, timer=60 })
+							else -- Now: the enemy has to attack back!
+								local _mob = GAME_MAP[_char.location].active_mobs[evt.tgt]
+								-- does it already have a target? 
+								if(_mob.current_tgt == nil)then
+								-- if not, give it: 
+									_mob.current_tgt = evt.src --active_clients[evt.src].current_character
+								else -- if so, TODO check their Hate scores
+									_ = 0 -- 
+								end
+								--start_fighting(_mob)
+								if not _mob.in_combat then 
+									_mob.in_combat = true 
+									table.insert(event_queue, { type="combat_round", src=_mob, tgt=_mob.current_tgt, action=ACTIONS.MOB_ATTACK, timer=1 } )
+								end
+								-- debug: 
+								--print("event queue: ", #event_queue)
+								--for i=1,#event_queue do
+								--	print(event_queue[i].type .. " " .. event_queue[i].action)
+								--end
 							end
-							--start_fighting(_mob)
-							if not _mob.in_combat then 
-								_mob.in_combat = true 
-								table.insert(event_queue, { type="combat_round", src=_mob, tgt=_mob.current_tgt, action=ACTIONS.MOB_ATTACK, timer=1 } )
-							end
-							-- debug: 
-							--print("event queue: ", #event_queue)
-							--for i=1,#event_queue do
-							--	print(event_queue[i].type .. " " .. event_queue[i].action)
-							--end
+							-- re-initiative: 
+							event_queue[i].timer = 7 - (_char.agi/6) -- 7 seconds minus agi/6 (we dont use mod here for granularity)
+							if event_queue[i].timer < 1 then event_queue[i].timer = 1 end 
 						end
-						-- re-initiative: 
-						event_queue[i].timer = 7 - (_char.agi/6) -- 7 seconds minus agi/6 (we dont use mod here for granularity)
-						if event_queue[i].timer < 1 then event_queue[i].timer = 1 end 
 					--
 					elseif evt.action == ACTIONS.MOB_ATTACK then 
 					-- Monsters turn 
-						if not active_clients[evt.tgt] then 
+						-- is the monster dead? 
+						if evt.src.cur_hp <= 0 then 
+							evt.src.in_combat = false 
 							table.insert(to_dl, i)
 						else
-							-- src : &Monster(), tgt : active_clients[i]
-							local _tgt = active_clients[evt.tgt].current_character
-							print("attack of " .. evt.src.name .. " vs " .. evt.tgt .. " " .. _tgt.name)
-							process_nme_attack(evt.src, _tgt, evt.tgt)
-							if _tgt.cur_hp < 0 then 
-								-- process more death if we need to. 
-							else 
-								-- player is still alive, anything else? 
-								if _tgt.state ~= STATE.IN_COMBAT then 
-									print(_tgt.name .. " engages " .. evt.src.name .. "!") -- attack back if you arent 
-									_tgt.state = STATE.IN_COMBAT
-									table.insert(event_queue, { type="combat_round", src=evt.tgt, tgt=evt.src.id, action=ACTIONS.STD_ATTACK, timer=1 } )
+							if not active_clients[evt.tgt] then 
+								table.insert(to_dl, i)
+							else
+								-- src : &Monster(), tgt : active_clients[i]
+								local _tgt = active_clients[evt.tgt].current_character
+								print("attack of " .. evt.src.name .. " vs " .. evt.tgt .. " " .. _tgt.name)
+								process_nme_attack(evt.src, _tgt, evt.tgt)
+								if _tgt.cur_hp <= 0 then 
+									-- process more death if we need to. 
+								else 
+									-- player is still alive, anything else? 
+									if _tgt.state ~= STATE.IN_COMBAT then 
+										print(_tgt.name .. " engages " .. evt.src.name .. "!") -- attack back if you arent 
+										_tgt.state = STATE.IN_COMBAT
+										table.insert(event_queue, { type="combat_round", src=evt.tgt, tgt=evt.src.id, action=ACTIONS.STD_ATTACK, timer=1 } )
+									end
 								end
+								event_queue[i].timer = 7 - (evt.src.initiative/6) 
+								if event_queue[i].timer < 1 then event_queue[i].timer = 1 end 
 							end
-							event_queue[i].timer = 7 - (evt.src.initiative/6) 
-							if event_queue[i].timer < 1 then event_queue[i].timer = 1 end 
 						end
 					else 
 						print(evt.action) -- debug 
@@ -232,7 +236,7 @@ function process_event_queues()
 	for i=1,#to_dl do 
 		arr_remove_i(event_queue, to_dl[i])
 	end
-	last_queue_time = os.clock()
+	last_queue_time = os.time()
 
 	process_status_effects()
 end
@@ -267,6 +271,20 @@ function process_status_effects()
 	-- gotta do these for players too 
 end
 
+function logout_user(uid)
+	if(active_clients[uid])then
+		active_clients[uid].peer:send(json.encode(MessagePacket:new({msg="You have been disconnected."})))
+		local _t = GAME_MAP[active_clients[uid].current_character.location].current_players
+		for i=1,#_t do 
+			if _t[i] == uid then 
+				table.remove(_t, i)
+				break 
+			end
+		end
+		active_clients[uid] = nil -- std hashmap erase 
+		login_count = login_count - 1
+	end
+end
 --
 -- MAIN SERVER LOOP
 --
@@ -274,7 +292,7 @@ while 1 do
 	-- Timer stuff 
 	-- Reseed the math seed every n seconds
 	if second_timer > SEED_TIMER then 
-		math.randomseed(os.clock())
+		math.randomseed(os.time())
 		second_timer = 0
 		print("math.random reseeded.")
 	end
@@ -282,9 +300,10 @@ while 1 do
 	if second_timer_2 > PRUNE_TIMER then 
 		for k,v in pairs(active_clients) do 
 			--print(k,v)
-			if (os.clock() - active_clients[k].last_active) > PRUNE_TIMER then 
-				active_clients[k] = nil 
-				print("disconnected user " .. k)
+			if (os.time() - active_clients[k].last_active) > PRUNE_TIMER then 
+				--active_clients[k] = nil 
+				logout_user(k)
+				print("disconnected user " .. k .. " due to timeout.")
 			end
 		end
 		second_timer_2 = 0
@@ -307,7 +326,7 @@ while 1 do
 	-- Main "events" loop for combat timings etc 
 	process_event_queues()
 
-
+	local ignore_login = false 
 	-- get any queued packets 
 	local e = host:service() 
 	if e then
@@ -320,36 +339,48 @@ while 1 do
 			-- LOGIN PACKET TYPE 
 			-- 
 				if process_login(pak) then  -- if true, pass OK 
-					active_clients[pak.uid] = Client:new( { login=pak.login, last_active=os.clock(), peer=e.peer })
-					login_count = login_count + 1
-					print("Current est no. of users: " .. login_count)
-					-- -- TODO FIXME perform SQL query here to pull characters into character_db 
-					db = sqlite:open("db/characters.db")
-					local result = db:select("character_database", { where = { user = pak.login }})
-					if result[1] ~= nil then 
-						print("Character found: " .. result[1].name .. "(total: " .. #result .. ")")
-						-- make new char object and copy in sql result 
-						local _tc = Character:new( { user=pak.login  })
-						_tc.from_sql(result[1])
-						_tc.derive()
-						--db:execute("DELETE FROM character_database WHERE user = '" .. pak.login .. "';")
-						--db:execute(create_char_sqlstr(_tc))
-						--table.insert(_tc.feats, FEATS.DecoyAttackI)
-						active_clients[pak.uid].current_character = _tc -- assign to client object 
-						table.insert(GAME_MAP[_tc.location].current_players, pak.uid)
-						e.peer:send(json.encode(MessagePacket:new({msg="Welcome back!\nYour primary character has been loaded."})))
-						e.peer:send(json.encode(_tc.to_blob()))
-						e.peer:send(json.encode(GAME_MAP[_tc.location].make_packet()))
-					else 
-						-- for now make a new random 
-						_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
-						active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
-						table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
-						e.peer:send(json.encode(MessagePacket:new({msg="Welcome!\nA new character has been created for you."})))
-						e.peer:send(json.encode(_new.to_blob()))
-						e.peer:send(json.encode(GAME_MAP[_new.location].make_packet())) -- and send the player the room dat
+					for k,v in pairs(active_clients) do -- check if someone's login already exists. 
+						if active_clients[k].login == pak.login then
+							if os.time() - active_clients[k].last_active < LOGOUT_LIMIT_TMR then 
+								e.peer:send(json.encode(MessagePacket:new({msg="You need to wait 30 seconds before you are fully logged out.\nPlease type 'quit' or 'exit'..."})))
+								ignore_login = true 
+							end
+							logout_user(k)
+							break
+						end
+					end 
+					if not ignore_login then 
+						active_clients[pak.uid] = Client:new( { login=pak.login, last_active=os.time(), peer=e.peer })
+						login_count = login_count + 1
+						print("Current est no. of users: " .. login_count)
+						-- -- TODO FIXME perform SQL query here to pull characters into character_db 
+						db = sqlite:open("db/characters.db")
+						local result = db:select("character_database", { where = { user = pak.login }})
+						if result[1] ~= nil then 
+							print("Character found: " .. result[1].name .. "(total: " .. #result .. ")")
+							-- make new char object and copy in sql result 
+							local _tc = Character:new( { user=pak.login  })
+							_tc.from_sql(result[1])
+							_tc.derive()
+							--db:execute("DELETE FROM character_database WHERE user = '" .. pak.login .. "';")
+							--db:execute(create_char_sqlstr(_tc))
+							--table.insert(_tc.feats, FEATS.DecoyAttackI)
+							active_clients[pak.uid].current_character = _tc -- assign to client object 
+							table.insert(GAME_MAP[_tc.location].current_players, pak.uid)
+							e.peer:send(json.encode(MessagePacket:new({msg="Welcome back!\nYour primary character has been loaded."})))
+							e.peer:send(json.encode(_tc.to_blob()))
+							e.peer:send(json.encode(GAME_MAP[_tc.location].make_packet()))
+						else 
+							-- for now make a new random 
+							_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
+							active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
+							table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
+							e.peer:send(json.encode(MessagePacket:new({msg="Welcome!\nA new character has been created for you."})))
+							e.peer:send(json.encode(_new.to_blob()))
+							e.peer:send(json.encode(GAME_MAP[_new.location].make_packet())) -- and send the player the room dat
+						end
+						db:close()
 					end
-					db:close()
 				else 
 					print("Login failed for user ", e.peer)
 				end
@@ -365,7 +396,7 @@ while 1 do
 						return
 					end
 
-					active_clients[pak.uid].last_active = os.clock() -- update time 
+					active_clients[pak.uid].last_active = os.time() -- update time 
 					local _char = active_clients[pak.uid].current_character 
 					print("user " , active_clients[pak.uid].peer , " used command " .. pak.cmd)
 
@@ -390,7 +421,13 @@ while 1 do
 						end
 
 					elseif pak.cmd == "SAY" then
-						-- TODO fix this  
+						-- Remove all chars < 0x20 and > 0x7f
+						for c=1,#pak.txt do  -- this ignores antyhing 0x80 for some reason. negative? 
+							--print(string.byte(string.sub(pak.txt, c, c)))
+							if (string.byte(string.sub(pak.txt, c, c)) < 32) or (string.byte(string.sub(pak.txt, c, c)) > 126) then 
+								pak.txt = string.sub(pak.txt, 1, c) .. string.sub(pak.txt, c+1, #pak.txt)
+							end
+						end
 						send_to_room(1, active_clients[pak.uid].current_character.name .. " says, \"" .. pak.txt .. "\"")
 
 					elseif pak.cmd == "USE" then 
@@ -400,6 +437,10 @@ while 1 do
 						CheckDecoyAttack(pak, e)
 						
 						---
+					elseif pak.cmd == "HEALME" then 
+						active_clients[pak.uid].current_character.cur_hp = active_clients[pak.uid].current_character.hp
+						active_clients[pak.uid].current_character.cur_mp = active_clients[pak.uid].current_character.mp
+						e.peer:send(json.encode(MessagePacket:new({msg="Okay, you're fully healed."})))
 
 					else 
 					-- ??? 
@@ -410,28 +451,32 @@ while 1 do
 					end
 				else 
 					print("error: user " .. pak.uid .. " not logged in, but tried command " .. pak.cmd)
+					e.peer:send(json.encode(MessagePacket:new({msg="You are currently logged out. Please 'quit' and log back in."})))
 				end
 
 			elseif pak.type == "LOGOUT" then 
 			-- LOGOUT PACKET TYPE 
 			-- 
+				print(pak.uid .. " requested logout.")
 				-- pop uid from game map 
-				if(active_clients[pak.uid])then
-					local _t = GAME_MAP[active_clients[pak.uid].current_character.location].current_players
-					for i=1,#_t do 
-						if _t[i] == pak.uid then 
-							table.remove(_t, i)
-							break 
-						end
-					end
-					active_clients[pak.uid] = nil -- std hashmap erase 
-					login_count = login_count - 1
-				end
+				logout_user(pak.uid)
+				
 			end
 
 		elseif e.type == "disconnect" then 
 			--
-			
+			print("user " .. e.peer:connect_id() .. " disconnected.")
+			local _u = nil
+			for k,v in pairs(active_clients)do 
+				if active_clients[k].peer == e.peer then 
+					_u = k 
+					break
+				end
+			end
+			if _u ~= nil then 
+				logout_user(_u) 
+				print("logged out user: " .. _u)
+			end 
 		else
 			print("Unhandled packet type: " .. e.type)
 

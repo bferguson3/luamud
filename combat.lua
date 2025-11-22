@@ -4,6 +4,7 @@ function refresh_mob(m)
 	m.cur_hp = m.hp 
 	m.cur_mp = m.mp 
 	m.status_mods = {}
+	m.in_combat = false 
 end
 
 function add_loot(_char, _item, peer)
@@ -94,13 +95,13 @@ function process_nme_attack(mob, char, tgt)
 	end
 	
 	if autoyes then 
-		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="Evasion check vs " .. mob.name .. ": Auto-success!"})))
+		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="Evasion check vs " .. mob.name .. ": %rff0Auto-success%rfff!"})))
 		-- add Decoy Attack debuff to player bc missed 
 		if decoy_i then Effect_DecoyAttackI.on_apply(char) end 
 		return
 	end
 	if autono then 
-		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="Evasion check vs " .. mob.name .. ": Auto-fail!! %r999(Gained 50 XP.)"})))
+		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="Evasion check vs " .. mob.name .. ": Auto-fail!! %r999(Gained 50 XP.)%rfff"})))
 		char.experience = char.experience + 50 
 	end
 
@@ -119,8 +120,12 @@ function process_nme_attack(mob, char, tgt)
 		end
 		_mod = _evlv + get_mod(char.dex) 
 	end
-	if (tot(_rl) + _mod) > _acc then -- Dodged!
-		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg=mob.name .. " attacked, but you dodged swiftly!"})))
+	if (tot(_rl) + _mod) >= _acc then -- Dodged!
+		active_clients[tgt].peer:send(json.encode(
+			MessagePacket:new(
+				{ msg = mob.name .. " attacked, but you %r0f2dodged%rfff swiftly!" .. " %r999(E" .. tostring(tot(_rl)+_mod) .. ")%rfff" }
+			)
+		))
 		if decoy_i then Effect_DecoyAttackI.on_apply(char) end 
 		return
 	end
@@ -140,14 +145,18 @@ function process_nme_attack(mob, char, tgt)
 	_dmg = _dmg - _def 
 	if (_dmg < 0) then _dmg = 0 end 
 	-- finally, deal dmg.. 
-	active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg=mob.name .. " strikes you for " .. tostring(_dmg) .. " damage!"})))
+	active_clients[tgt].peer:send(json.encode(
+		MessagePacket:new(
+			{ msg = mob.name .. " %rafahits%rfff you for %rf99" .. tostring(_dmg) .. "%rfff damage!".. " %r999(E" .. tostring(tot(_rl)+_mod) ..")%rfff" }
+		)
+	))
 	damage(char, _dmg)
 
 	-- TODO update player packet locally ! 
 	
 	if char.cur_hp < 0 then 
 		-- DEATH 
-		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="You're dead, but luckily it's not programmed yet."})))
+		active_clients[tgt].peer:send(json.encode(MessagePacket:new({msg="%r999You're dead, but luckily it's not programmed yet.%rfff"})))
 		-- 
 	end
 end
@@ -197,7 +206,7 @@ function process_attack(_char, _enm, evt)
 	print("Rolled " .. _t .. " (" .. _rl[1] .. ", " .. _rl[2] .. ") + " .. tostring(_lvmod+_dxmod+_accmod))
 	if (_rl[1]==1) and (_rl[2]==1) then 
 		_t = 0 
-		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Attack: Auto-fail!! %r999(Gained 50 XP.)"})))
+		active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Attack: Auto-fail!! %r999(Gained 50 XP.)%rfff"})))
 		_char.experience = _char.experience + 50 
 		return
 	end 
@@ -221,7 +230,7 @@ function process_attack(_char, _enm, evt)
 			else _dmg=-1 end -- fumble 
 			if((tot(_sr))>=Equipment_DB[_char.eqp_weapon].crit) and (_dmg>0) then _crit=true end 
 			if _dmg < 0 then 
-				active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Fumbled! No damage!"})))
+				active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="%r999Fumbled!%rfff No damage!"})))
 			else 
 				_dmg = _dmg + get_mod(_char.str) + _adddmg
 				local _burst=true
@@ -247,7 +256,7 @@ function process_attack(_char, _enm, evt)
 			_dmg = strike_table[1][_strike]
 			if(_sr[1]==1)and(_sr[2]==1)then _dmg=-1 end 
 			if _dmg < 0 then 
-				active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="Fumbled! No damage!"})))
+				active_clients[evt].peer:send(json.encode(MessagePacket:new({msg="%r999Fumbled!%rfff No damage!"})))
 			else
 				_dmg = _dmg + get_mod(_char.str)
 				_dmg = _dmg - _enm.def 
