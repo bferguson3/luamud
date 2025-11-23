@@ -16,9 +16,53 @@ then `$ cp <build folder>/luv.so ./`
 
 
 ## Run Server
-`luajit server.lua`
+`luajit ./server.lua`
 
 
 ## Run Client
-### client.lua no longer works, use love2d 
-`love ./`
+`love ./` for Love2D client
+
+`luajit ./client.lua` tty client
+
+## BUILD/DIST INFO 
+
+.so files needed: 
+
+lua-enet
+
+ `https://leafo.net/lua-enet/`
+
+luasqlite3
+
+ `https://lua.sqlite.org/home/index`
+
+
+Both may require `<sudo> luarocks install enet/lsqlite3` 
+
+LuaSQLite3 requires 'luarocks install luv'
+
+Native bins for LibUV, Enet, Sqlite may be needed, or installable from pak manager:
+ https://github.com/libuv/libuv
+
+ https://github.com/lsalzman/enet
+
+ https://sqlite.org/src/rchvdwnld/release
+
+I had to edit defs.lua to find the sql lib path on Ubuntu:
+
+`sudo nano /usr/local/share/lua/5.1/sqlite/defs.lua`
+
+Fresh install needs: 
+
+ `python3 ./make_database_key.py` 
+
+ `luajit ./resetsqldb.lua` 
+
+ `luajit ./server.lua` 
+
+-
+
+Client:
+
+`luajit ./client.lua `
+
