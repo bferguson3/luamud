@@ -210,7 +210,7 @@ function parse_input(f)
         -- QUIT / EXIT 
         elseif string.find(f, "quit") == 1 or string.find(f, "exit") == 1 then 
             server:send(json.encode({type="LOGOUT",uid=my_uid}))
-            love.event.quit()
+            
 
         -- HEALME (cheat)
         elseif(string.find(string.lower(f), "healme") == 1) then 
@@ -326,6 +326,11 @@ function process_packet(e)
     elseif pak.type == "MESSAGE_COMBAT" then    
         p(pak.msg)
         -- for each character, process any codes etc before adding directly to print queue
+
+    elseif pak.type == "DISCONNECT_OK" then 
+        p(pak.msg)
+        love.event.quit()
+
     else
         print(pak.type)
     end
@@ -429,7 +434,7 @@ function love.update(dt)
         end
     
     elseif CURRENT_GAME_STATE == GAMESTATE.QUIT then 
-        love.event.quit()
+        --love.event.quit()
 
     end
     

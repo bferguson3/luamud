@@ -148,6 +148,7 @@ function process_event_queues()
 						else 
 							local _char = active_clients[evt.src].current_character
 							local _enm = GAME_MAP[_char.location].active_mobs[evt.tgt]	
+
 							-- resolve 
 							print("attack of " .. evt.src .. " vs " .. _enm.name)
 							process_attack(_char, _enm, evt.src)
@@ -274,9 +275,17 @@ function process_status_effects()
 	-- gotta do these for players too 
 end
 
-function logout_user(uid)
+function logout_inactive(uid)
+	if(active_clients[uid].last_active >= LOGOUT_LIMIT_TMR) then 
+		logout_user(uid)
+	else 
+		print("Logged out user has not been offline long enough.")
+	end
+end
+
+function logout_user(uid)	
 	if(active_clients[uid])then
-		active_clients[uid].peer:send(json.encode(MessagePacket:new({msg="You have been disconnected."})))
+		active_clients[uid].peer:send(json.encode(DisconnectPacket:new({msg="You have been disconnected."})))
 		local _t = GAME_MAP[active_clients[uid].current_character.location].current_players
 		for i=1,#_t do 
 			if _t[i] == uid then 
@@ -343,12 +352,13 @@ while 1 do
 			-- 
 				if process_login(pak) then  -- if true, pass OK 
 					for k,v in pairs(active_clients) do -- check if someone's login already exists. 
-						if active_clients[k].login == pak.login then
+						if active_clients[k].login == pak.login then -- do we already exist? 
 							if os.time() - active_clients[k].last_active < LOGOUT_LIMIT_TMR then 
-								e.peer:send(json.encode(MessagePacket:new({msg="You need to wait 30 seconds before you are fully logged out.\nPlease type 'quit' or 'exit'..."})))
+								e.peer:send(json.encode(DisconnectPacket:new({msg="You did not log out successfully!\nYou need to wait ".. tostring(LOGOUT_LIMIT_TMR - (os.time() - active_clients[k].last_active)) .." seconds before you are fully logged out.\nQuitting..."})))
 								ignore_login = true 
+							else 
+								logout_user(k)
 							end
-							logout_user(k)
 							break
 						end
 					end 
@@ -462,12 +472,17 @@ while 1 do
 			-- 
 				print(pak.uid .. " requested logout.")
 				-- pop uid from game map 
-				if active_clients[pak.uid].current_character.state == STATE.IN_COMBAT then 
-					e.peer:send(json.encode(MessagePacket:new({msg="You can't quit in combat!"})))
-				else
-					logout_user(pak.uid)
+				if (active_clients[pak.uid])then 
+					if active_clients[pak.uid].current_character then 
+						
+						if active_clients[pak.uid].current_character.state == STATE.IN_COMBAT then 
+							print("DEBUGDEBUGUD")
+							e.peer:send(json.encode(MessagePacket:new({msg="You can't quit in combat!"})))
+						else 
+							logout_user(pak.uid)
+						end
+					end
 				end
-				
 			end
 
 		elseif e.type == "disconnect" then 

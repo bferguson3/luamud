@@ -25,6 +25,18 @@ function MessagePacket:new(o)
     return o
 end
 
+DisconnectPacket={}
+function DisconnectPacket:new(o)
+    local o = o or {}
+    setmetatable(o, self)
+    self.__index = self 
+    --
+    o.type = o.type or "DISCONNECT_OK"
+    o.msg = o.msg or ""
+    
+    return o
+end
+
 -- CHARACTER_DAT
 -- character = { see c_character.lua }
 CommandPacket={}
