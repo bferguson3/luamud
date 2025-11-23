@@ -287,14 +287,6 @@ function split(s, delimiter)
     return result
 end
 
-function ansicolor(c)
-	if c ~= nil then 
-		io.write("\x1b[0;" .. c .. "m")		
-	else -- bright white
-		io.write("\x1b[0;97m")
-	end
-end
-
 
 clrcode = "%%[Rr][0123456789ABCDEFabcdef][0123456789ABCDEFabcdef][0123456789ABCDEFabcdef]"		
 
@@ -357,44 +349,6 @@ local last_keycode = 0
 p("Input IP address, or press enter for localhost:6789.")
 for i=1,22 do
 	p(" ")
-end
-
-
--- #ff0
--- #AFA 
--- #aaa
--- #D4D 
--- #FFF 
--- #999 
--- #0F2
--- #0FB 
--- #F99 
--- #F88
-
-function color_hex(s)
-	if s == 'ff0' then 
-		io.write(BRK .. CLR .. ansi_colors.YELLOW .. "m")
-	elseif s == '00f' then 
-		io.write(BRK .. CLR .. ansi_colors.BLUE .. "m")
-	elseif s == 'afa' then 
-		io.write(BRK .. CLR .. ansi_colors.CYAN .. "m")
-	elseif s == 'aaa' then 
-		io.write(BRK .. CLR .. ansi_colors.WHITE .. "m")
-	elseif s == 'd4d' then 
-		io.write(BRK .. CLR .. ansi_colors.MAGENTA .. "m")
-	elseif s == 'fff' then 
-		io.write(BRK .. CLR .. ansi_colors.BRWHITE .. "m")
-	elseif s == '999' then 
-		io.write(BRK .. CLR .. ansi_colors.WHITE .. "m")
-	elseif s == '0f2' then 
-		io.write(BRK .. CLR .. ansi_colors.GREEN .. "m")
-	elseif s == '0fb' then 
-		io.write(BRK .. CLR .. ansi_colors.CYAN .. "m")
-	elseif s == 'f99' then 
-		io.write(BRK .. CLR .. ansi_colors.RED .. "m")
-	elseif s == 'f88' then 
-		io.write(BRK .. CLR .. ansi_colors.RED .. "m")
-	end
 end
 
 local time_since_last_key = 0

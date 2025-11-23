@@ -318,7 +318,7 @@ function love.update(dt)
     elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
         -- First, process login 
         if(login_initialized==false)then 
-            p("%rff8Welcome to SworldMud!")
+            p("%rf77Welcome to SworldMud!")
             p("Please input the IP address of your server, or\nENTER to use localhost:6789.")
             login_initialized = true 
         end

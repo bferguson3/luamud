@@ -81,31 +81,6 @@ function logprint(st)
 	f:close()
 end
 
-function color_hex(s)
-	if s == 'ff0' then 
-		io.write(BRK .. CLR .. ansi_colors.YELLOW .. "m")
-	elseif s == '00f' then 
-		io.write(BRK .. CLR .. ansi_colors.BLUE .. "m")
-	elseif s == 'afa' then 
-		io.write(BRK .. CLR .. ansi_colors.CYAN .. "m")
-	elseif s == 'aaa' then 
-		io.write(BRK .. CLR .. ansi_colors.WHITE .. "m")
-	elseif s == 'd4d' then 
-		io.write(BRK .. CLR .. ansi_colors.MAGENTA .. "m")
-	elseif s == 'fff' then 
-		io.write(BRK .. CLR .. ansi_colors.BRWHITE .. "m")
-	elseif s == '999' then 
-		io.write(BRK .. CLR .. ansi_colors.WHITE .. "m")
-	elseif s == '0f2' then 
-		io.write(BRK .. CLR .. ansi_colors.GREEN .. "m")
-	elseif s == '0fb' then 
-		io.write(BRK .. CLR .. ansi_colors.CYAN .. "m")
-	elseif s == 'f99' then 
-		io.write(BRK .. CLR .. ansi_colors.RED .. "m")
-	elseif s == 'f88' then 
-		io.write(BRK .. CLR .. ansi_colors.RED .. "m")
-	end
-end
 --print = logprint
 
 function split(s, delimiter)
@@ -280,7 +255,7 @@ function parse_input(f)
             e = host:service(250)
             if(e)then
                 if e.type=="connect"then 
-                    p("Connected: ", '999', false)
+                    p("%raaaConnected: %rfff")
                     p(tostring(e.peer:connect_id()))
                     CURRENT_GAME_STATE = GAMESTATE.GET_USER
                 end
@@ -430,7 +405,7 @@ function love.update(dt)
         e = host:service()
         if e then
             if e.type == "connect" then -- We connected, first event
-                p("Connected: ", {0.5,1,0.5}, false)
+                p("%raaaConnected: %rfff")
                 p(tostring(e.peer:connect_id()))
                 --login = LoginPacket:new({uid=my_uid, login=USERNAME, pass=PASSWORD})
                 --e.peer:send(json.encode(login))
@@ -442,7 +417,7 @@ function love.update(dt)
     elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
         -- First, process login 
         if(login_initialized==false)then 
-            p("%rff8Welcome to SworldMud!")
+            p("%rf77Welcome to SworldMud!")
             p("Please input the IP address of your server, or\nENTER to use localhost:6789.")
             login_initialized = true 
         end
@@ -523,17 +498,6 @@ function love.update(dt)
     -- end
     -- --
     --
-
-    -- flicker txt line 
-    if txt_blink_ctr > line_blink_spd then 
-        if draw_cursor_line == false then 
-            draw_cursor_line = true 
-        else 
-            draw_cursor_line = false 
-        end
-        txt_blink_ctr = 0
-    end
-
     --parse_input("")	
 end
 
