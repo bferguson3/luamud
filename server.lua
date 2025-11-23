@@ -476,7 +476,6 @@ while 1 do
 					if active_clients[pak.uid].current_character then 
 						
 						if active_clients[pak.uid].current_character.state == STATE.IN_COMBAT then 
-							print("DEBUGDEBUGUD")
 							e.peer:send(json.encode(MessagePacket:new({msg="You can't quit in combat!"})))
 						else 
 							logout_user(pak.uid)

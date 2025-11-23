@@ -162,9 +162,9 @@ function Character:new(o)
 		return { character = _me, type="CHARACTER_DAT" } 
 	end
 	o.from_blob = function(b) -- this is only used on the CLIENT. 
-		for k,v in pairs(b)do
-			print(k,v)
-		end
+		--for k,v in pairs(b)do
+		--	print(k,v)
+		--end
 		o.name = b.name 
 		o.alv = b.alv 
 		o.classes = b.classes 
