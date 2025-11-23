@@ -9,7 +9,7 @@ package.preload["sha2"] = function()
 	return code()
 end
 package.preload['enet'] = function() 
-	local path = "enet.so" 
+	local path = "./enet.so" 
 	local f = assert(package.loadlib(path, "luaopen_enet"))
 	f()
 end

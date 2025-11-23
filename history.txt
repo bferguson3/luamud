@@ -1,0 +1,181 @@
+    1  history
+    2  cd ~/
+    3  ls -l
+    4  ls -l .*
+    5  cat .bash_history 
+    6  rm .bash_history 
+    7  git
+    8  apt
+    9  sudo apt-get install git
+   10  sudo apt-get update
+   11  sudo apt-get upgrade
+   12  sudo apt-get update
+   13  sudo apt-get upgrade
+   14  audo apt autoremove
+   15  sudo apt autoremove
+   16  ls
+   17  cd Downloads/
+   18  git clone https://luajit.org/git/luajit.git
+   19  sudo apt-get install git
+   20  git clone https://luajit.org/git/luajit.git
+   21  cd luajit
+   22  ls
+   23  make
+   24  sudo apt-get install make
+   25  make
+   26  sudo apt-get install gcc
+   27  make
+   28  sudo make install
+   29  cd ..
+   30  luajit
+   31  git clone https://github.com/bferguson3/luamud
+   32  cd luamud
+   33  luajit ./server.lua 
+   34  cd ..
+   35  sudo apt-get install enet
+   36  git clone https://github.com/lsalzman/enet
+   37  cd enet
+   38  ls
+   39  mkdir build
+   40  cd build
+   41  cmake ..
+   42  sudo apt-get install cmake
+   43  cmake ..
+   44  CXX=gcc cmake ..
+   45  cd Downloads/luamud
+   46  cp ../sqlite/libsqlite3.so ./
+   47  luajit ./server.lua 
+   48  ls -lsa
+   49  python3 ./make_database_key.py
+   50  luajit ./resetsqldq.lua
+   51  luajit ./resetsqldb.lua
+   52  ls -lsa
+   53  nano resetsqldb.lua
+   54  sudo apt-get install nano
+   55  nano resetsqldb.lua
+   56  luarocks install luasql-sqlite3
+   57  sudo luarocks install luasql-sqlite3
+   58  luajit ./resetsqldb.lua
+   59  nano resetsqldb.lua
+   60  luajit ./resetsqldb.lua
+   61  brew install libuv
+   62  sudo apt-get install libuv
+   63  cd ..
+   64  git clone https://github.com/libuv/libuv
+   65  cd libuv
+   66  ls
+   67  ./autogen.sh 
+   68  ls
+   69  make
+   70  ./compile 
+   71  ./compile --help
+   72  ./install-sh 
+   73  autogen.sh
+   74  ./autogen.sh 
+   75  ls
+   76  make
+   77  ./compile 
+   78  mkdir build
+   79  cd build
+   80  cmake ..
+   81  make
+   82  ls
+   83  cp ./libuv.so ../../luamud
+   84  cd ..
+   85  cd luamud
+   86  luajit ./resetsqldb.lua
+   87  ls
+   88  mv libuv.so luv.so
+   89  luajit ./resetsqldb.lua
+   90  nano resetsqldb.lua
+   91  luajit ./resetsqldb.lua
+   92  nano resetsqldb.lua
+   93  luajit ./resetsqldb.lua
+   94  ls
+   95  rm luv.so
+   96  cd luv
+   97  cd ..
+   98  cd luv-1.51.0-1
+   99  ls
+  100  mkdir build
+  101  cd build
+  102  cmake ..
+  103  cd ..
+  104  ls
+  105  cd ..
+  106  cd luamud
+  107  sudo luarocks install luv
+  108  ls
+  109  luajit ./resetsqldb.lua
+  110  nano resetsqldb.lua
+  111  luajit ./resetsqldb.lua
+  112  nano resetsqldb.lua
+  113  luajit ./resetsqldb.lua
+  114  ls
+  115  luarocks install lsqlite3
+  116  sudo luarocks install lsqlite3
+  117  rm libsqlite3.so 
+  118  luajit ./resetsqldb.lua
+  119  find / -name "libsqlite3*" 2>/dev/null
+  120  cd ..
+  121  cd sqlite
+  122  ls
+  123  sudo make install
+  124  cd ..
+  125  cd luamud
+  126  luajit ./resetsqldb.lua
+  127  sudo apt-get install sqlite3
+  128  luajit ./resetsqldb.lua
+  129  cd Downloads/luamud
+  130  luajit ./resetsqldb.lua
+  131  nano resetsqldb.lua
+  132  luajit ./resetsqldb.lua
+  133  nano resetsqldb.lua
+  134  luajit ./resetsqldb.lua
+  135  nano resetsqldb.lua
+  136  luajit ./resetsqldb.lua
+  137  nano resetsqldb.lua
+  138  luajit ./resetsqldb.lua
+  139  cd ..
+  140  cd lsqlite3_v096
+  141  ls
+  142  make
+  143  sudo make
+  144  sudo make install
+  145  cd ..
+  146  cd luamud
+  147  ls
+  148  luajit ./resetsqldb.lua
+  149  cp ../sqlite/libsqlite3.so ./
+  150  luajit ./resetsqldb.lua
+  151  sudo apt-get install lua5.4
+  152  luajit ./resetsqldb.lua
+  153  cd ..
+  154  cd lsqlite3_v096
+  155  ls
+  156  cp ./lsqlite3.so ../luamud
+  157  cd ..
+  158  cd luamud
+  159  ls
+  160  rm libsqlite3.so 
+  161  luajit ./resetsqldb.lua
+  162  mv lsqlite3.so libsqlite3.so
+  163  luajit ./resetsqldb.lua
+  164  nano /usr/local/share/lua/5.1/sqlite/defs.lua
+  165  ls /usr/local/opt
+  166  nano /usr/local/share/lua/5.1/sqlite/defs.lua
+  167  ls /usr/local/opt
+  168  nano /usr/local/share/lua/5.1/sqlite/defs.lua
+  169  find / -name "libsqlite3.dylib" 2>/dev/null
+  170  find / -name "sqlite3.dylib" 2>/dev/null
+  171  nano /usr/local/share/lua/5.1/sqlite/defs.lua
+  172  sudo nano /usr/local/share/lua/5.1/sqlite/defs.lua
+  173  luajit ./resetsqldb.lua
+  174  sudo nano /usr/local/share/lua/5.1/sqlite/defs.lua
+  175  luajit ./resetsqldb.lua
+  176  ls -lsa
+  177  luajit ./server.lua 
+  178  ls
+  179  ls -lsa
+  180  history 100
+  181  history 200 > history.txt

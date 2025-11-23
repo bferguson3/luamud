@@ -1,5 +1,12 @@
 -- Delete db/users.db and db/characters.db if they exist!
 -- RESET TABLES AFTER DELETE 
+--package.path = package.path .. ";"
+--package.preload["sqlite"] = function()
+--	local path = "libsqlite3.so"
+--	local f = assert(package.loadlib(path))
+--	f()
+--end
+
 local sqlite = require "sqlite"
 
 local db = sqlite:open("db/users.db")
