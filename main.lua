@@ -17,10 +17,13 @@ dofile("src/item.lua")()
 local host = enet.host_create()
 local ip_address="localhost:6789"
 local server = nil 
+local tty 
 
 local os_type = package.config:sub(1,1) == "\\" and "Windows" or "Unix-like"
 if(os_type == "Unix-like")then
 	os.execute("stty -icanon min 0 time 1 -echo")
+else 
+	tty = require "tty"
 end
 
 USERNAME = "test"
@@ -268,7 +271,8 @@ function parse_input(f)
         end
     elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
         ip_address = f 
-        if ip_address == "" then ip_address = "localhost:6789" end 
+        --logprint(f)
+        if ip_address == "" then ip_address = "192.168.1.5:6789" end 
         server = host:connect(ip_address)
         if server == nil then 
             p("Failed to connect!")
@@ -387,13 +391,23 @@ function love.update(dt)
     if(dt < 1/30) then love.timer.sleep((1/30) - dt) end
 
     local e = nil 
-
+    local _inp = nil 
     txt_blink_ctr = txt_blink_ctr + dt
-
-    _inp = io.read(1)
+    if tty then 
+        _inp = tty.read_chr()
+        --logprint(_inp)
+        if (_inp == 0) then _inp = nil end 
+        if (_inp == 13) then _inp = "\n" else
+            if _inp ~= nil then 
+                _inp = string.char(tonumber(_inp))
+            end
+        end
+    else 
+        _inp = io.read(1)
+    end
 	if _inp ~= nil then 
 		--print(string.byte(_inp)) -- debug 
-		if(_inp == '\n')then -- return 
+		if(_inp == '\n')then -- return
 			moveto(0,25)
 			io.write("                                                                              ")
 			parse_input(current_input)
@@ -460,6 +474,7 @@ function love.update(dt)
 		update_screen = true 
 		time_since_last_key = actual_timer
 	end
+	--update_screen = true
 	if update_screen then 
 		topleft()
 		local last_clr = 'fff'
@@ -473,6 +488,7 @@ function love.update(dt)
 			io.write("\n")
 		end
 		moveto(0,25)
+		--print("")
 		if CURRENT_GAME_STATE == GAMESTATE.GET_PASS then 
 			local _tx = string.gsub(current_input, "%w", "*")
 			io.write(_tx)
@@ -517,7 +533,8 @@ function love.update(dt)
         end
         txt_blink_ctr = 0
     end
-		
+
+    --parse_input("")	
 end
 
 function love.quit()
@@ -527,6 +544,6 @@ function love.quit()
         --server:disconnect()
         host:flush()
     end
-
+    --tty.disable_raw_mode()
     return false -- false = do not abort quit()
 end

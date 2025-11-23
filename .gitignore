@@ -9,3 +9,4 @@ database_key
 client 
 *.a 
 log.txt
+*.dll
