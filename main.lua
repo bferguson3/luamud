@@ -456,6 +456,7 @@ function love.update(dt)
 	end
 	--update_screen = true
 	if update_screen then 
+        hide_cursor()
 		topleft()
 		local last_clr = 'fff'
 		for y=1,24 do 
@@ -476,7 +477,9 @@ function love.update(dt)
 			io.write("> " .. current_input)
 		end
 		update_screen = false 
+        show_cursor()
 	else  
+        hide_cursor()
 		moveto(0,25)
 		if CURRENT_GAME_STATE == GAMESTATE.GET_PASS then 
 			local _tx = string.gsub(current_input, "%w", "*")
@@ -484,6 +487,7 @@ function love.update(dt)
 		else	
 			io.write("> " .. current_input)
 		end
+        show_cursor()
 	end
     -- draw text screen to canvas during main loop 
     --print("hello world")

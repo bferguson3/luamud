@@ -21,6 +21,12 @@ BRK = '\x1b'
 CLR = '[0;'
 --a = BRK .. CLR .. ansi_colors.RED 
 
+function hide_cursor()
+	io.write(BRK .. "[?25l")
+end
+function show_cursor()
+	io.write(BRK .. "[?25h")
+end
 
 function color_hex(s)
 	if s == 'ff0' then 
