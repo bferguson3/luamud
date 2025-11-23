@@ -1,4 +1,4 @@
--- love2d headless client 
+-- love2d client 
 local lg = love.graphics 
 dofile = love.filesystem.load
 
@@ -17,11 +17,6 @@ dofile("src/item.lua")()
 local host = enet.host_create()
 local ip_address="localhost:6789"
 local server = nil 
-
-local os_type = package.config:sub(1,1) == "\\" and "Windows" or "Unix-like"
-if(os_type == "Unix-like")then
-	os.execute("stty -icanon min 0 time 1 -echo")
-end
 
 USERNAME = "test"
 PASSWORD = "test"
@@ -58,117 +53,59 @@ local cursor_pos_x = 0
 local CURRENT_GAME_STATE = GAMESTATE.LOGIN_SCREEN
 
 local local_enemies = {}
-local update_screen = true 
-
-
-screen = {}
-
-math.randomseed(os.time())
-
-for i=1,(80*25) do 
-	screen[i] = { ' ', 'fff' }
-end
-
--- TESTING 
-local update_screen = true 
-
-function logprint(st)
-	local f = io.open("log.txt", "a")
-	f:write(st)
-	f:close()
-end
-
-function color_hex(s)
-	if s == 'ff0' then 
-		io.write(BRK .. CLR .. ansi_colors.YELLOW .. "m")
-	elseif s == '00f' then 
-		io.write(BRK .. CLR .. ansi_colors.BLUE .. "m")
-	elseif s == 'afa' then 
-		io.write(BRK .. CLR .. ansi_colors.CYAN .. "m")
-	elseif s == 'aaa' then 
-		io.write(BRK .. CLR .. ansi_colors.WHITE .. "m")
-	elseif s == 'd4d' then 
-		io.write(BRK .. CLR .. ansi_colors.MAGENTA .. "m")
-	elseif s == 'fff' then 
-		io.write(BRK .. CLR .. ansi_colors.BRWHITE .. "m")
-	elseif s == '999' then 
-		io.write(BRK .. CLR .. ansi_colors.WHITE .. "m")
-	elseif s == '0f2' then 
-		io.write(BRK .. CLR .. ansi_colors.GREEN .. "m")
-	elseif s == '0fb' then 
-		io.write(BRK .. CLR .. ansi_colors.CYAN .. "m")
-	elseif s == 'f99' then 
-		io.write(BRK .. CLR .. ansi_colors.RED .. "m")
-	elseif s == 'f88' then 
-		io.write(BRK .. CLR .. ansi_colors.RED .. "m")
-	end
-end
---print = logprint
-
-function split(s, delimiter)
-    local result = {}
-    -- Pattern matches any character not in the delimiter set, one or more times
-    for part in string.gmatch(s, "([^" .. delimiter .. "]+)") do
-        table.insert(result, part)
-    end
-    return result
-end
-
-function ansicolor(c)
-	if c ~= nil then 
-		io.write("\x1b[0;" .. c .. "m")		
-	else -- bright white
-		io.write("\x1b[0;97m")
-	end
-end
-
-clrcode = "%%[Rr][0123456789ABCDEFabcdef][0123456789ABCDEFabcdef][0123456789ABCDEFabcdef]"		
 
 
 function mud_print(txt, _color, _newline)
-    update_screen = true
-	-- print as much as fits 
-	local parts = split(txt, '\n')
-	local clr = 'fff'
-	for i=1,#parts do 
-		logprint(os.time() .. " : ") -- this is linux time in seconds 
-		logprint(parts[i])
-		logprint("\n")
-	end
-	for i=1,#parts do 
-		for y=1,24 do
-			for x=1,80 do  
-				screen[((y*80)+x)-80] = screen[(y*80)+x]
-			end
-		end
-		local y = (24 * 80) + 1
-		while y < ((24 * 80) + 80) do 
-			screen[y] = { ' ', 'fff' }
-			y = y + 1
-		end
-		-- replace all color codes with ansi codes instead 
-		-- TODO: do this differently by colorizing each code in ram 
-		local c = 1 
-		local l = (24*80)+1
-		while c <= #parts[i] do 
-			local _s = parts[i]:sub(c,c)
-			if _s == '%' then 
-				if parts[i]:sub(c+1, c+1) == 'r' then 
-					clr = parts[i]:sub(c+2,c+4)
-					_s = parts[i]:sub(c+5,c+5)
-					c = c + 5
-				end
-			end
-			screen[l] = { _s, clr }
-			c = c + 1 
-			l = l + 1 
-		end
-		while c <= 80 do 
-			screen[l] = { ' ', 'fff' }
-			c = c + 1
-			l = l + 1
-		end
-	end
+    local txt = txt or ""
+    local _newline = _newline or true 
+    local _color =_color or {1, 1, 1}
+    if _newline == false then _newline = 2 end 
+    if txt==nil then 
+        return 
+    end
+    for i=1,#txt do
+        local _c = string.sub(txt, i, i)
+        if _c == '\n' then 
+            current_line = current_line + 1
+            current_col = 0
+            if current_line > MAX_CHAR_HEIGHT then 
+                current_line = current_line - 1
+                for _i=MAX_CHAR_WIDTH,#text_screen do 
+                    text_screen[_i - MAX_CHAR_WIDTH] = text_screen[_i]
+                end
+                for _i=1,#text_buffer do 
+                    text_buffer[_i].y = text_buffer[_i].y - 1
+                end
+            end
+        elseif _c == '%' then 
+            -- special code 
+            if string.sub(txt, i, i+1) == '%r' then -- change color 
+                local _lr = string.sub(txt, i+2, i+4)
+                _color={tonumber(string.sub(_lr,1,1),16)/15,
+                    tonumber(string.sub(_lr,2,2),16)/15,
+                    tonumber(string.sub(_lr,3,3),16)/15}
+                txt = string.sub(txt, 1, i-1) .. string.sub(txt, i+4, #txt)
+            end
+        else
+            table.insert(text_buffer, { c = _c, x = current_col, y = current_line, r = _color} )
+            current_col = current_col + 1
+        end
+    end
+    
+    if _newline~=2 then 
+        current_col = 0
+        current_line = current_line + 1
+        
+        if current_line > MAX_CHAR_HEIGHT then 
+            current_line = current_line - 1
+            for _i=MAX_CHAR_WIDTH,#text_screen do 
+                text_screen[_i - MAX_CHAR_WIDTH] = text_screen[_i]
+            end
+            for _i=1,#text_buffer do 
+                text_buffer[_i].y = text_buffer[_i].y - 1
+            end
+        end
+    end
 end
 local p = mud_print
 
@@ -180,6 +117,7 @@ function parse_input(f)
     if CURRENT_GAME_STATE==GAMESTATE.NORMAL_GAME then 
     -- COMMAND INPUT PROCESSING 
     -- 
+
         -- ATTACK COMMAND 
         if string.find(f, "att") == 1 then 
             tgt = ""
@@ -229,16 +167,6 @@ function parse_input(f)
             end
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
 
-        -- QUIT / EXIT 
-        elseif string.find(f, "quit") == 1 or string.find(f, "exit") == 1 then 
-            server:send(json.encode({type="LOGOUT",uid=my_uid}))
-            love.event.quit()
-
-        -- HEALME (cheat)
-        elseif(string.find(string.lower(f), "healme") == 1) then 
-			server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="HEALME"})))
-
-
         -- USE (generic)
         elseif string.find(f, "use") == 1 then 
             local d = string.sub(f, 5, #f) 
@@ -276,13 +204,10 @@ function parse_input(f)
             e = host:service(250)
             if(e)then
                 if e.type=="connect"then 
-                    p("Connected: ", '999', false)
+                    p("Connected: ", {0.5,1,0.5}, false)
                     p(tostring(e.peer:connect_id()))
                     CURRENT_GAME_STATE = GAMESTATE.GET_USER
-                end
-            else 
-                p("Connection failed.")
-                CURRENT_GAME_STATE = GAMESTATE.QUIT
+                end    
             end
         end
     elseif CURRENT_GAME_STATE==GAMESTATE.GET_USER then 
@@ -354,9 +279,9 @@ end
 
 
 function love.load()
-    -- font = lg.newFont(8)
+    font = lg.newFont(8)
 
-    -- text_canvas = lg.newCanvas(640, 400)
+    text_canvas = lg.newCanvas(640, 400)
 
     math.randomseed(os.time())
 
@@ -370,46 +295,12 @@ local update_canvas = true
 local fps_ctr = 0
 local login_initialized = false 
 local un_init = false 
-
-
-local IS_SHIFT = false
-
-
--------------------------------------------------
---
---     LOVE CODE 
--- 
--------------------------------------------------
-local time_since_last_key = 0
-local actual_timer = 0
 function love.update(dt)
-    actual_timer = actual_timer + 0.1
     if(dt < 1/30) then love.timer.sleep((1/30) - dt) end
 
     local e = nil 
 
     txt_blink_ctr = txt_blink_ctr + dt
-
-    _inp = io.read(1)
-	if _inp ~= nil then 
-		--print(string.byte(_inp)) -- debug 
-		if(_inp == '\n')then -- return 
-			moveto(0,25)
-			io.write("                                                                              ")
-			parse_input(current_input)
-			current_input = ""
-		elseif(string.byte(_inp) == 127)then -- backspace 
-			current_input = string.sub(current_input, 1, #current_input - 1)
-			moveto(0,25)
-			io.write("                                                                              ")
-			moveto(0,25)
-		else 
-			time_since_last_key = actual_timer
-			current_input = current_input .. _inp
-            --logprint(current_input)
-		end
-	end
-
 
     if CURRENT_GAME_STATE == GAMESTATE.NORMAL_GAME then 
         -- CHECK SERVER 
@@ -424,7 +315,6 @@ function love.update(dt)
                 process_packet(e)
             end
         end
-    
     elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
         -- First, process login 
         if(login_initialized==false)then 
@@ -432,16 +322,11 @@ function love.update(dt)
             p("Please input the IP address of your server, or\nENTER to use localhost:6789.")
             login_initialized = true 
         end
-    
     elseif CURRENT_GAME_STATE == GAMESTATE.GET_USER then 
         if not un_init then 
             p("OK! Please enter your USERNAME: \n (If it does not exist on the server, it will be created)")
             un_init = true
         end
-    
-    elseif CURRENT_GAME_STATE == GAMESTATE.QUIT then 
-        love.event.quit()
-
     end
     
     -- process text buffer 
@@ -455,57 +340,22 @@ function love.update(dt)
 
     -- DRAW
     --
-    -- ACTUAL SCREEN DRAW 
-	if(actual_timer - time_since_last_key > 0.5)then
-		update_screen = true 
-		time_since_last_key = actual_timer
-	end
-	if update_screen then 
-		topleft()
-		local last_clr = 'fff'
-		for y=1,24 do 
-			for x=1,80 do 
-				--if screen[(y*80)+x][2] ~= last_clr then -- change color 
-				local s = string.lower(screen[(y*80)+x][2])
-				color_hex(s)
-				io.write(screen[(y*80)+x][1])
-			end
-			io.write("\n")
-		end
-		moveto(0,25)
-		if CURRENT_GAME_STATE == GAMESTATE.GET_PASS then 
-			local _tx = string.gsub(current_input, "%w", "*")
-			io.write(_tx)
-		else	
-			io.write("> " .. current_input)
-		end
-		update_screen = false 
-	else  
-		moveto(0,25)
-		if CURRENT_GAME_STATE == GAMESTATE.GET_PASS then 
-			local _tx = string.gsub(current_input, "%w", "*")
-			io.write(_tx)
-		else	
-			io.write("> " .. current_input)
-		end
-	end
     -- draw text screen to canvas during main loop 
-    --print("hello world")
-    -- if(update_canvas)then
-    -- lg.setCanvas(text_canvas)
-    --     lg.clear(0.1, 0.1, 0.1)
-    --     for y=0,24 do
-    --         for x=0,80 do 
-    --             if(text_screen[(y*80)+x] ~= nil) then 
-    --                 lg.setColor(text_screen[(y*80)+x][2])
-    --                 lg.print(text_screen[(y*80)+x], x * 8, y * 16)
-    --             end
-    --         end
-    --     end
-    -- lg.setCanvas()
-    -- update_canvas = false 
-    -- end
-    -- --
+    if(update_canvas)then
+    lg.setCanvas(text_canvas)
+        lg.clear(0.1, 0.1, 0.1)
+        for y=0,24 do
+            for x=0,80 do 
+                if(text_screen[(y*80)+x] ~= nil) then 
+                    lg.setColor(text_screen[(y*80)+x][2])
+                    lg.print(text_screen[(y*80)+x], x * 8, y * 16)
+                end
+            end
+        end
+    lg.setCanvas()
+    update_canvas = false 
+    end
+    --
     --
 
     -- flicker txt line 
@@ -518,6 +368,72 @@ function love.update(dt)
         txt_blink_ctr = 0
     end
 		
+end
+
+function love.draw()
+
+    lg.clear(0, 0, 0) -- cls 
+    
+    scaleX = intResolutionX / 640
+    scaleY = intResolutionY / 400
+    lg.draw(text_canvas, 0, 0, 0, scaleX, scaleY) -- screen
+
+    lg.setColor(1, 1, 1)
+    lg.line(0, (400-16)*scaleY, 640*scaleX, (400-16)*scaleY) -- input rule 
+
+    lg.print("> ", 0, (400-16)*scaleY, 0, scaleX, scaleY)
+    for _i=0,#current_input do -- input text 
+        lg.print(string.sub(current_input, _i, _i), (8 + (_i * 8))*scaleX, 384*scaleY, 0, scaleX, scaleY)
+    end
+
+    cursor_pos_x = #current_input
+    if draw_cursor_line then  -- underline 
+        lg.line(((cursor_pos_x * 8) + 16)*scaleX, scaleY*399, ((cursor_pos_x * 8) + 24)*scaleX, scaleY*399)
+    end
+
+end
+
+local IS_SHIFT = false
+
+function love.keypressed(key, scancode, isrepeat)
+    if #scancode == 1 then 
+        if IS_SHIFT then 
+            scancode = scancode:upper()
+            if scancode == '1' then scancode = '!'
+            elseif scancode=='2'then scancode='\"'
+            elseif scancode=='3'then scancode='#'
+            elseif scancode=='4'then scancode='$'
+            elseif scancode=='5'then scancode='%'
+            elseif scancode=='6'then scancode='&'
+            elseif scancode=='7'then scancode='\''
+            elseif scancode=='8'then scancode='('
+            elseif scancode=='9'then scancode=')'
+            elseif scancode=='/'then scancode='?'end
+        end
+        current_input = current_input .. scancode
+    end
+    if scancode == "rshift" or scancode == "lshift" then 
+        IS_SHIFT = true 
+    elseif scancode == "space" then 
+        current_input = current_input .. " "
+    elseif scancode == "return" then 
+        parse_input(current_input)
+        current_input = ''
+    elseif scancode == "backspace" then 
+        current_input = string.sub(current_input, 1, #current_input - 1)
+    end
+    --print(scancode)
+end
+
+function love.keyreleased(key, scancode, isrepeat)
+    if scancode == "rshift" or scancode == "lshift" then 
+        IS_SHIFT = false 
+    end
+end
+
+function love.resize(w, h)
+    intResolutionX = w
+    intResolutionY = h 
 end
 
 function love.quit()

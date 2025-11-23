@@ -1,6 +1,6 @@
 require "enet" 
 local json = require "json"
-local sqlite = require 'sqlite.db'
+local sqlite = require 'sqlite'
 local sha = require("sha2")
 dofile("src/arr.lua")
 dofile("src/sleep.lua")
@@ -196,10 +196,13 @@ function process_event_queues()
 						-- is the monster dead? 
 						if evt.src.cur_hp <= 0 then 
 							evt.src.in_combat = false 
+							evt.src.current_tgt = nil 
 							table.insert(to_dl, i)
 						else
 							if not active_clients[evt.tgt] then 
 								table.insert(to_dl, i)
+								evt.src.in_combat = false
+								evt.src.current_tgt = nil 
 							else
 								-- src : &Monster(), tgt : active_clients[i]
 								local _tgt = active_clients[evt.tgt].current_character

@@ -151,3 +151,13 @@ MOBTYPES = {
 	Construct = 10,
 	Magitech = 11
 }
+
+
+GAMESTATE={
+    LOGIN_SCREEN = 1,
+    NORMAL_GAME = 2,
+    GET_IP = 3,
+    GET_USER = 4,
+    GET_PASS = 5,
+	QUIT = 6
+}

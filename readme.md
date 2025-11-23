@@ -66,3 +66,9 @@ Client:
 
 `luajit ./client.lua `
 
+## client parity 
+### client.lua 
+ATTACK, LOOK, SAY, USE (decoy attack), HEALME, LOGOUT
+### main.sdl.lua (love2D graphical window)
+ATTACK, LOOK, SAY, USE (decoy attack) 
+### main.lua (love2D console-only)

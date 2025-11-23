@@ -43,24 +43,15 @@ local current_col = 0
 local text_buffer = {} -- what NEEDS to be printed next 
 --char_ex = 
 --    { c = 'a', x = 1, y = 2, r = {1.0, 0, 0} }
---
 local font = nil 
 local text_screen = {}
 --txt_char = { 'a', { 1, 0, 1 } }
--- }
 local line_blink_spd = 0.1
 local txt_blink_ctr = 0
 local draw_cursor_line = false 
 local current_input = ''
 local cursor_pos_x = 0
 
-GAMESTATE={
-    LOGIN_SCREEN = 1,
-    NORMAL_GAME = 2,
-    GET_IP = 3,
-    GET_USER=4,
-    GET_PASS=5
-}
 local CURRENT_GAME_STATE = GAMESTATE.LOGIN_SCREEN
 
 local local_enemies = {}
