@@ -1,17 +1,17 @@
-dofile("preload.lua")
+dofile("src/preload.lua")
 	
 local sha = require "sha2"
 local enet = require "enet"
 local json = require "json"
 local bit = require "bit"
-dofile("enums.lua")
-dofile("packets.lua")
-dofile("ansi.lua")
-dofile("uid.lua")
-dofile("c_character.lua")
+dofile("src/enums.lua")
+dofile("src/packets.lua")
+dofile("src/ansi.lua")
+dofile("src/uid.lua")
+dofile("src/c_character.lua")
 -- huh? why need this 
-dofile("monster.lua")
-dofile("item.lua")
+dofile("src/monster.lua")
+dofile("src/item.lua")
 local host = enet.host_create()
 local server = nil --host:connect("localhost:6789")
 local ip_address = "localhost:6789"

@@ -2,17 +2,17 @@ require "enet"
 local json = require "json"
 local sqlite = require 'sqlite.db'
 local sha = require("sha2")
-dofile("arr.lua")
-dofile("sleep.lua")
-dofile("enums.lua")
-dofile("packets.lua")
-dofile("ansi.lua")
-dofile("c_client.lua")
-dofile("c_character.lua")
-dofile("location.lua")
-dofile("striketable.lua")
-dofile("roll.lua")
-dofile("c_statuseffect.lua")
+dofile("src/arr.lua")
+dofile("src/sleep.lua")
+dofile("src/enums.lua")
+dofile("src/packets.lua")
+dofile("src/ansi.lua")
+dofile("src/c_client.lua")
+dofile("src/c_character.lua")
+dofile("src/location.lua")
+dofile("src/striketable.lua")
+dofile("src/roll.lua")
+dofile("src/c_statuseffect.lua")
 
 -- LOAD DATABASE KEY 
 local MY_DB_KEY = nil
@@ -27,7 +27,7 @@ if MY_DB_KEY == nil then
 end
 
 -- VERYFIY MONSTER DB 
-dofile("monster.lua")
+dofile("src/monster.lua")
 ct = 0
 for k,v in pairs(Monster_DB)do 
 	ct = ct + 1
@@ -35,7 +35,7 @@ end
 print(ct .. " monsters loaded (of 674 expected).")
 
 -- VERIFY ITEM DB 
-dofile("item.lua")
+dofile("src/item.lua")
 ct = 0
 for k,v in pairs(Treasure_DB)do 
 	ct = ct + 1
@@ -79,9 +79,9 @@ function get_mod(n)
 	return math.floor(n)
 end
 
-dofile("combat.lua")
+dofile("src/combat.lua")
 
-dofile("sw.lua")
+dofile("src/sw.lua")
 
 -- Start server:
 print("Opening LUAMUD server on 6789...")

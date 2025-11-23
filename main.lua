@@ -8,12 +8,12 @@ local enet = require "enet"
 local json = require "json"
 local bit = require "bit"
 --local tick = require 'tick'
-dofile("enums.lua")()
-dofile("packets.lua")()
-dofile("ansi.lua")()
-dofile("uid.lua")()
-dofile("c_character.lua")()
-dofile("item.lua")()
+dofile("src/enums.lua")()
+dofile("src/packets.lua")()
+dofile("src/ansi.lua")()
+dofile("src/uid.lua")()
+dofile("src/c_character.lua")()
+dofile("src/item.lua")()
 local host = enet.host_create()
 local ip_address="localhost:6789"
 local server = nil 
