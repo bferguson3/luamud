@@ -1,4 +1,4 @@
-GAME_MAP[1] = Location:new({name="%r00fRaxia Adventurer Guild No.31%rfff",
+GAME_MAP[1] = Location:new({name="%r77fRaxia Adventurer Guild No.31%rfff",
 	shortdesc="A bustling adventurer's guild.",
 	desc="This guild is bustling with activity. Aspiring adventurers are coming and going.\
 There are a number of tables filled with drinking patrons, and behind a long\

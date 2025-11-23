@@ -462,7 +462,11 @@ while 1 do
 			-- 
 				print(pak.uid .. " requested logout.")
 				-- pop uid from game map 
-				logout_user(pak.uid)
+				if active_clients[pak.uid].current_character.state == STATE.IN_COMBAT then 
+					e.peer:send(json.encode(MessagePacket:new({msg="You can't quit in combat!"})))
+				else
+					logout_user(pak.uid)
+				end
 				
 			end
 

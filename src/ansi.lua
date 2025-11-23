@@ -27,6 +27,8 @@ function color_hex(s)
 		io.write(BRK .. CLR .. ansi_colors.BRYELLOW .. "m")
 	elseif s == '00f' then 
 		io.write(BRK .. CLR .. ansi_colors.BLUE .. "m")
+	elseif s == '77f' then 
+		io.write(BRK .. CLR .. ansi_colors.BRBLUE .. "m")
 	elseif s == 'f77' then 
 		io.write(BRK .. CLR .. ansi_colors.BRRED .. "m")
 	elseif s == 'afa' then 
