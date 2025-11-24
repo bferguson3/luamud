@@ -160,7 +160,7 @@ function love.update(dt)
 
     if CURRENT_GAME_STATE == GAMESTATE.NORMAL_GAME then 
         -- CHECK SERVER 
-        e = host:service()
+        e = host:service(1)
         if e then
             if e.type == "connect" then -- We connected, first event
                 p("%raaaConnected: %rfff")
@@ -250,7 +250,7 @@ end
 function love.quit()
     if server ~= nil then 
         server:send(json.encode({type="LOGOUT", uid=my_uid}))
-        host:service()
+        host:service(1)
         --server:disconnect()
         host:flush()
     end

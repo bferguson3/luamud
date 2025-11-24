@@ -156,6 +156,7 @@ function process_event_queues()
 
 							if _enm.dead then 
 								table.insert(to_dl, i)
+								_char.state = STATE.NONE
 							else
 								-- resolve 
 								print("attack of " .. evt.src .. " vs " .. _enm.name)
@@ -167,8 +168,8 @@ function process_event_queues()
 									send_to_room(_char.location, _enm.name .. " %rfaaperished%rfff!!")
 									
 									active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
-									active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
-									active_clients[evt.src].current_character.state = STATE.NONE
+									_char.experience = _char.experience + MOB_XP[_enm.lv]+_enm.hp
+									_char.state = STATE.NONE
 									--GAME_MAP[_char.location].active_mobs[evt.tgt]
 									_enm.dead = true -- ded
 		
@@ -353,7 +354,7 @@ while 1 do
 
 	local ignore_login = false 
 	-- get any queued packets 
-	local e = host:service() 
+	local e = host:service(1) 
 	if e then
 		if e.type == "receive" then -- receive event: 
 			-- decode event data to json 
