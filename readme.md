@@ -54,7 +54,7 @@ I had to edit defs.lua to find the sql lib path on Ubuntu:
 
 Fresh install needs: 
 
- `python3 ./make_database_key.py` 
+ `lua ./reset_dbbkey.py` 
 
  `luajit ./resetsqldb.lua` 
 

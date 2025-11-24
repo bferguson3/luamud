@@ -16,13 +16,13 @@ dofile("src/c_statuseffect.lua")
 
 -- LOAD DATABASE KEY 
 local MY_DB_KEY = nil
-local dbkf = io.open("database_key", "rb")
+local dbkf = io.open("db_key", "rb")
 if dbkf then 
 	MY_DB_KEY = dbkf:read("*all")
 	dbkf:close()
 end
 if MY_DB_KEY == nil then 
-	print("database_key not found. quitting")
+	print("db_key not found. quitting")
 	quit()
 end
 
@@ -149,43 +149,51 @@ function process_event_queues()
 							local _char = active_clients[evt.src].current_character
 							local _enm = GAME_MAP[_char.location].active_mobs[evt.tgt]	
 
-							-- resolve 
-							print("attack of " .. evt.src .. " vs " .. _enm.name)
-							process_attack(_char, _enm, evt.src)
-
-							-- Death resolve part 2: 
-							if _enm.cur_hp <= 0 then 
-								-- broadcast to entire room 
-								send_to_room(_char.location, _enm.name .. " %rfaaperished%rfff!!")
-								
-								active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
-								active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
-								active_clients[evt.src].current_character.state = STATE.NONE
-								GAME_MAP[_char.location].active_mobs[evt.tgt].dead = true -- kill em 
-								-- TODO: do this right < idk what this means
+							if _enm.dead then 
 								table.insert(to_dl, i)
-								-- TODO: custom respawn timers 
-								-- src = index of enemy that died, tgt = location to spawn 
-								table.insert(event_queue, { type="respawn", src=evt.tgt, tgt=_char.location, action=nil, timer=60 })
-							else -- Now: the enemy has to attack back!
-								local _mob = GAME_MAP[_char.location].active_mobs[evt.tgt]
-								-- does it already have a target? 
-								if(_mob.current_tgt == nil)then
-								-- if not, give it: 
-									_mob.current_tgt = evt.src --active_clients[evt.src].current_character
-								else -- if so, TODO check their Hate scores
-									_ = 0 -- 
+							else
+								-- resolve 
+								print("attack of " .. evt.src .. " vs " .. _enm.name)
+								process_attack(_char, _enm, evt.src)
+
+								--if not _enm.dead then 
+								if _enm.cur_hp <= 0 then --kyill it 
+									-- broadcast to entire room -- Death resolve part 2: 
+									send_to_room(_char.location, _enm.name .. " %rfaaperished%rfff!!")
+									
+									active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="You gained %rcc2" .. (MOB_XP[_enm.lv]+_enm.hp) .. " experience."})))
+									active_clients[evt.src].current_character.experience = active_clients[evt.src].current_character.experience + MOB_XP[_enm.lv]+_enm.hp
+									active_clients[evt.src].current_character.state = STATE.NONE
+									--GAME_MAP[_char.location].active_mobs[evt.tgt]
+									_enm.dead = true -- ded
+		
+									table.insert(to_dl, i)
+									-- TODO: custom respawn timers 
+									-- src = index of enemy that died, tgt = location to spawn 
+									table.insert(event_queue, { type="respawn", src=evt.tgt, tgt=_char.location, action=nil, timer=60 })
+								else -- Now: the enemy has to attack back!
+									local _mob = GAME_MAP[_char.location].active_mobs[evt.tgt]
+									-- does it already have a target? 
+									if(_mob.current_tgt == nil)then
+									-- if not, give it: 
+										_mob.current_tgt = evt.src --active_clients[evt.src].current_character
+									else -- if so, TODO check their Hate scores
+										if _mob.current_tgt ~= evt.src then 
+											active_clients[evt.src].peer:send(json.encode(MessagePacket:new({msg="The " .. _mob.name .. " is distracted with fighting " .. active_clients[_mob.current_tgt].current_character.name .. "!"})))
+										end
+										--_ = 0 -- 
+									end
+									--start_fighting(_mob)
+									if not _mob.in_combat then 
+										_mob.in_combat = true 
+										table.insert(event_queue, { type="combat_round", src=_mob, tgt=_mob.current_tgt, action=ACTIONS.MOB_ATTACK, timer=1 } )
+									end
+									-- debug: 
+									--print("event queue: ", #event_queue)
+									--for i=1,#event_queue do
+									--	print(event_queue[i].type .. " " .. event_queue[i].action)
+									--end
 								end
-								--start_fighting(_mob)
-								if not _mob.in_combat then 
-									_mob.in_combat = true 
-									table.insert(event_queue, { type="combat_round", src=_mob, tgt=_mob.current_tgt, action=ACTIONS.MOB_ATTACK, timer=1 } )
-								end
-								-- debug: 
-								--print("event queue: ", #event_queue)
-								--for i=1,#event_queue do
-								--	print(event_queue[i].type .. " " .. event_queue[i].action)
-								--end
 							end
 							-- re-initiative: 
 							event_queue[i].timer = 7 - (_char.agi/6) -- 7 seconds minus agi/6 (we dont use mod here for granularity)
