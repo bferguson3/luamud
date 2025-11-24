@@ -39,6 +39,8 @@ function color_hex(s)
 		io.write(BRK .. CLR .. ansi_colors.BRRED .. "m")
 	elseif s == 'afa' then 
 		io.write(BRK .. CLR .. ansi_colors.CYAN .. "m")
+	elseif s == '7ff' then 
+		io.write(BRK .. CLR .. ansi_colors.BRCYAN .. "m")
 	elseif s == 'aaa' then 
 		io.write(BRK .. CLR .. ansi_colors.WHITE .. "m")
 	elseif s == 'd4d' then 

@@ -450,10 +450,19 @@ while 1 do
 						CheckDecoyAttack(pak, e)
 						
 						---
+					elseif pak.cmd == "GET_STATUS"then 
+						print(pak.uid .. " request char status.")
+						e.peer:send(json.encode(active_clients[pak.uid].current_character.to_blob()))
+				
+
 					elseif pak.cmd == "HEALME" then 
 						active_clients[pak.uid].current_character.cur_hp = active_clients[pak.uid].current_character.hp
 						active_clients[pak.uid].current_character.cur_mp = active_clients[pak.uid].current_character.mp
 						e.peer:send(json.encode(MessagePacket:new({msg="Okay, you're fully healed."})))
+						
+						local _p = active_clients[pak.uid].current_character.to_blob()
+						_p.type = "CHARACTER_UPDATE"
+						e.peer:send(json.encode(_p))
 
 					else 
 					-- ??? 
@@ -466,6 +475,7 @@ while 1 do
 					print("error: user " .. pak.uid .. " not logged in, but tried command " .. pak.cmd)
 					e.peer:send(json.encode(MessagePacket:new({msg="You are currently logged out. Please 'quit' and log back in."})))
 				end
+				
 
 			elseif pak.type == "LOGOUT" then 
 			-- LOGOUT PACKET TYPE 

@@ -1,9 +1,9 @@
 dofile("src/preload.lua")
 	
-local sha = require "sha2"
+local sha  = require "sha2"
 local enet = require "enet"
 local json = require "json"
-local bit = require "bit"
+local bit  = require "bit"
 dofile("src/enums.lua")
 dofile("src/packets.lua")
 dofile("src/ansi.lua")
@@ -19,11 +19,22 @@ local ip_address = "localhost:6789"
 -- Determine OS type for tty settings
 local os_type = package.config:sub(1,1) == "\\" and "Windows" or "Unix-like"
 if(os_type == "Unix-like")then
+	os.execute("clear")
 	os.execute("stty -icanon min 0 time 1 -echo")
+else 
+	os.execute("cls")
 end
 
-USERNAME = "test"
-PASSWORD = "test"
+--USERNAME = "test"
+--PASSWORD = "test"
+local update_canvas = true
+local fps_ctr = 0
+local login_initialized = false 
+local un_init = false 
+-- love.update() 
+--love.draw() 
+local IS_SHIFT = false
+
 local last_ping = 0
 local delay = 0
 local my_uid = make_UID()
@@ -73,8 +84,8 @@ function parse_input(f)
     -- 
         -- ATTACK COMMAND 
         if string.find(f, "att") == 1 then 
-            tgt = ""
-            tgt_i = 0
+            local tgt = ""
+            local tgt_i = 0
             for k,v in pairs(local_enemies) do 
                 for token in string.gmatch(f, "[^%s]+") do 
                     if tonumber(token) then 
@@ -105,14 +116,17 @@ function parse_input(f)
                 p("No target!")
             end
 		
+		elseif(string.find(string.lower(f), "stat") == 1) then 
+			server:send(json.encode(CommandPacket:new({cmd="GET_STATUS",uid=my_uid})))
+
 		-- exit_quit 
 		elseif(string.find(string.lower(f), "exit") == 1) then 
 			server:send(json.encode({type="LOGOUT",uid=my_uid}))
-			GAME_DONE = true
+			--GAME_DONE = true
 
 		elseif(string.find(string.lower(f), "quit") == 1) then 
 			server:send(json.encode({type="LOGOUT",uid=my_uid}))
-			GAME_DONE = true 
+			--GAME_DONE = true 
 
 		-- emergency heal 
 		elseif(string.find(string.lower(f), "healme") == 1) then 
@@ -196,8 +210,8 @@ function parse_input(f)
         elseif(f:len() < 6)then 
             p("Password too short. Minimum 6 characters. Try again: ")
         else
-            password_input = sha.sha256(f)
-            login = LoginPacket:new({uid=my_uid, login=user_name_input, pass=password_input})
+            local password_input = sha.sha256(f)
+            local login = LoginPacket:new({uid=my_uid, login=user_name_input, pass=password_input})
             server:send(json.encode(login))
             CURRENT_GAME_STATE=GAMESTATE.NORMAL_GAME
         end
@@ -207,13 +221,6 @@ end
 --
 -- function love.load() 
 	-- 
-local update_canvas = true
-local fps_ctr = 0
-local login_initialized = false 
-local un_init = false 
--- love.update() 
---love.draw() 
-local IS_SHIFT = false
 --love.keypressed()
 --resize 
 --quit 
@@ -224,17 +231,13 @@ function process_packet(e)
 	local pak = json.decode(e.data)
 	
 	if pak.type == "CHARACTER_DAT" then 
-		p("new character data received", 'f22')
 		active_character = Character:new({})
 		active_character.from_blob(pak.character)
-		p(active_character.name)
-		p("DEX   " .. active_character.dex)
-		p("AGI   " .. active_character.agi)
-		p("STR   " .. active_character.str)
-		p("VIT   " .. active_character.vit)
-		p("INT   " .. active_character.int)
-		p("SPI   " .. active_character.spi)
-		p("")
+		active_character.p_status()
+	
+	elseif pak.type == "CHARACTER_UPDATE" then  -- Do not print!
+		active_character = Character:new({})
+		active_character.from_blob(pak.character)
         
     elseif pak.type == "ROOM" then 
         p("-[" .. pak.name .. "]-", 'ff7' )
@@ -254,6 +257,11 @@ function process_packet(e)
     elseif pak.type == "MESSAGE_COMBAT" then    
         p(pak.msg)
         -- for each character, process any codes etc before adding directly to print queue
+
+	elseif pak.type == "DISCONNECT_OK" then 
+        print(pak.msg)
+        os.exit()
+
     else
         p(pak.type)
     end
@@ -357,7 +365,7 @@ while not GAME_DONE do -- Main loop
 	actual_timer = actual_timer + 0.1
 	-- this is inaccurate, but its very easy. 
 	-- input 
-	_inp = io.read(1)
+	local _inp = io.read(1)
 	if _inp ~= nil then 
 		--print(string.byte(_inp))
 		if(_inp == '\n')then -- return 
@@ -381,6 +389,13 @@ while not GAME_DONE do -- Main loop
 		update_screen = true 
 		time_since_last_key = actual_timer
 	end
+	local prompt = ""
+	if active_character then 
+		--prompt = " \x1b[0;91m" .. active_character.cur_hp .. "\x1b[0;97m / \x1b[0;91m" .. active_character.hp .. "\x1b[0;97m > "
+		prompt = " HP \x1b[0;91m" .. active_character.cur_hp .. "\x1b[0;97m MP \x1b[0;96m" .. active_character.cur_mp .. "\x1b[0;97m > "
+	else 
+		prompt = "> "
+	end
 	if update_screen then 
 		topleft()
 		local last_clr = 'fff'
@@ -398,7 +413,7 @@ while not GAME_DONE do -- Main loop
 			local _tx = string.gsub(current_input, "%w", "*")
 			io.write(_tx)
 		else	
-			io.write("> " .. current_input)
+			io.write(prompt .. current_input)
 		end
 		update_screen = false 
 	else  
@@ -407,7 +422,7 @@ while not GAME_DONE do -- Main loop
 			local _tx = string.gsub(current_input, "%w", "*")
 			io.write(_tx)
 		else	
-			io.write("> " .. current_input)
+			io.write(prompt .. current_input)
 		end
 	end
 

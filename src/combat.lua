@@ -153,6 +153,9 @@ function process_nme_attack(mob, char, tgt)
 	damage(char, _dmg)
 
 	-- TODO update player packet locally ! 
+	local _p = active_clients[tgt].current_character.to_blob()
+	_p.type = "CHARACTER_UPDATE"
+	active_clients[tgt].peer:send(json.encode(_p))
 	
 	if char.cur_hp < 0 then 
 		-- DEATH 

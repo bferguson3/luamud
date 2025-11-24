@@ -10,6 +10,21 @@ FEATS = {
 	DecoyAttackII = 2
 }
 
+function get_class_string(en)
+	if en == SKILLS.CONJURER then return "Conjurer"
+	elseif en == SKILLS.FENDER then return "Fencer" 
+	elseif en == SKILLS.FIGHTER then return "Fighter"
+	elseif en == SKILLS.GRAPPLER then return "Grappler"
+	elseif en == SKILLS.MAGITECH then return "Magitech"
+	elseif en == SKILLS.PRIEST then return "Priest"
+	elseif en == SKILLS.RANGER then return "Ranger"
+	elseif en == SKILLS.SAGE then return "Sage"
+	elseif en == SKILLS.SCOUT then return "Scout"
+	elseif en == SKILLS.SHOOTER then return "Shooter"
+	elseif en == SKILLS.SORCERER then return "Sorcerer"
+	end
+end
+
 Feat={}
 function Feat:new(o)
 	local o = o or {}
@@ -108,6 +123,34 @@ function Character:new(o)
 		end
 		return 0
 	end	
+
+	o.p_status = function()
+		p("Name: " .. o.name .. "     Player: ".. o.user)
+		p(" ALV: " .. o.alv .. "     Race: " .. o.race)
+		p(" Skill [" .. o.skill .. "]  Body [" .. o.body .. "]  Mind [" .. o.mind .. "]" )
+		p(" DEX  " .. o.dex .. " | AGI  " .. o.agi .." | STR  " .. o.str.. " | VIT  " .. o.vit .. " | INT  " .. o.int .. " | SPI  " .. o.spi)
+		p(" HP: < %rf77" .. o.cur_hp .. " / " .. o.hp .. "%rfff >     MP: < %r7ff" .. o.cur_mp .. " / " .. o.mp .. "%rfff >")
+		p(" Soulscars: " .. o.scars .. "     Gender: " .. o.gender .. "     Age: " .. o.age)
+		local _classes = ""
+		for i=1,#o.classes do 
+			_classes = _classes .. get_class_string(o.classes[i][1]) .. " " .. o.classes[i][2] .. ", "
+		end 
+		p("Classes: " .. _classes:sub(1, #_classes-2)) 
+		local _eqp = "Weapon: "
+		if o.eqp_weapon > 0 then 
+			_eqp = _eqp .. Equipment_DB[o.eqp_weapon].name .. " [" .. Equipment_DB[o.eqp_weapon].power .. "]"
+		else _eqp = _eqp .. "None" end 
+		_eqp = _eqp .. "     Armor: "
+		if o.eqp_armor > 0 then 
+			_eqp = _eqp .. Equipment_DB[o.eqp_armor].name .. " [" .. Equipment_DB[o.eqp_armor].power .. "]"
+		else _eqp = _eqp .. "None" end 
+		_eqp = _eqp .. "     Shield: "
+		if o.eqp_shield > 0 then 
+			_eqp = _eqp .. Equipment_DB[o.eqp_shield].name .. " [" .. Equipment_DB[o.eqp_shield].power .. "]"
+		else _eqp = _eqp .. "None" end 
+		p(_eqp)
+		p(" ")
+	end
 
 	o.to_blob = function()
 		local _me = {}
