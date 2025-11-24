@@ -114,6 +114,7 @@ function Character:new(o)
 	o.eqp_accessory = o.eqp_accessory or { 0,0,0,0,0,0,0,0,0 }
 	o.status_mods = o.status_mods or { }
 	o.experience = o.experience or 0 
+	o.searched_rooms = o.searched_rooms or {}--{ {0, 59} } -- i searched room zero 1 second ago 
 
 	o.get_level = function(sk)
 		for i=1,#o.classes do

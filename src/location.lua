@@ -1,3 +1,19 @@
+function load_scenario(f)
+	dofile(f) 
+	for i=1,#GAME_MAP do -- MUST HAVE THIS:  --Define active_mobs instances
+		for j=1,#GAME_MAP[i].mobs do 
+			GAME_MAP[i].active_mobs[j] = GAME_MAP[i].mobs[j].copy(j)
+		end
+	end
+end
+
+function search_func(uid)
+	active_clients[uid].peer:send(json.encode(MessagePacket:new({msg="Search as you might, there doesn't seem to be anything here."})))
+end
+
+function talk_func(uid)
+	active_clients[uid].peer:send(json.encode(MessagePacket:new({msg="There is nobody here to talk to!"})))
+end
 
 Location={}
 function Location:new(o)
@@ -5,23 +21,28 @@ function Location:new(o)
 	setmetatable(o, self)
 	self.__index = self 
 	-- 
-	o.name = o.name or "[Location]"
+	o.name = o.name or "[%r77fLocation%rfff]"
 	o.shortdesc = o.shortdesc or "This is a location."
 	o.desc = o.desc or "This location is certainly a location. There are things and stuff here. A soft breeze touches your cheek."
-	o.current_players = o.current_players or {}
+	o.current_players = o.current_players or {} -- uid 
 	o.mobs = o.mobs or {}
+	o.active_mobs = o.active_mobs or {}
 	o.exits = o.exits or { 
 		[EXITS.N] = nil,
 		[EXITS.S] = nil,
 		[EXITS.E] = nil,
 		[EXITS.W] = nil,
-		[EXITS.U] = nil,
 		[EXITS.NE] = nil,
 		[EXITS.SE] = nil,
 		[EXITS.NW] = nil,
 		[EXITS.SW] = nil,
+		[EXITS.U] = nil,
 		[EXITS.D] = nil
 	}
+	-- not shared in packet: 
+	o.search = o.search or { 2, search_func } -- { SEARCH_TARGET_NUM, SEARCH_SUCCESS_FUNCTION }
+	o.talk = o.talk or talk_func -- TALK_FUNCTION 
+	-- search() and talk() both take the user's uid as their only argument.
 
 	o.make_packet = function()
 		local p = {}

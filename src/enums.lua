@@ -17,12 +17,12 @@ EXITS = {
 	S=2,
 	E=3,
 	W=4,
-	U=5,
-	D=6,
-	NE=7,
-	SE=8,
-	SW=9,
-	NW=10
+	NE=5,
+	SE=6,
+	NW=7,
+	SW=8,
+	U=9,
+	D=10
 }
 
 LANGUAGES = { 

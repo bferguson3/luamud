@@ -83,7 +83,7 @@ active_character = nil
  user_name_input=""
  my_uid = make_UID()
 
-dofile("agno_cl.lua")
+dofile("src/agno_cl.lua")
 
 
 -- check_server coroutine

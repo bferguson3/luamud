@@ -85,7 +85,7 @@ end
 local update_screen = true 
  user_name_input=""
 
-dofile("agno_cl.lua")
+dofile("src/agno_cl.lua")
 --
 
 

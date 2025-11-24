@@ -1,6 +1,6 @@
 
 function parse_input(f)
-	--f = string.lower(f)
+	local lf = string.lower(f)
     if CURRENT_GAME_STATE==GAMESTATE.NORMAL_GAME then 
     -- COMMAND INPUT PROCESSING 
     -- 
@@ -38,31 +38,40 @@ function parse_input(f)
                 p("No target!")
             end
 		
-		elseif(string.find(string.lower(f), "stat") == 1) then 
+		elseif(string.find(lf, "stat") == 1) then 
 			server:send(json.encode(CommandPacket:new({cmd="GET_STATUS",uid=my_uid})))
 
 		-- exit_quit 
-		elseif(string.find(string.lower(f), "exit") == 1) then 
+		elseif(string.find(lf, "exit") == 1) then 
 			server:send(json.encode({type="LOGOUT",uid=my_uid}))
 			--GAME_DONE = true
 
-		elseif(string.find(string.lower(f), "quit") == 1) then 
+		elseif(string.find(lf, "quit") == 1) then 
 			server:send(json.encode({type="LOGOUT",uid=my_uid}))
 			--GAME_DONE = true 
 
 		-- emergency heal 
-		elseif(string.find(string.lower(f), "healme") == 1) then 
+		elseif(string.find(lf, "healme") == 1) then 
 			server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="HEALME"})))
 
         -- LOOK COMMAND 
-        elseif string.find(string.lower(f), "loo") == 1 or f == "l" then 
+        elseif string.find(lf, "loo") == 1 or f == "l" then 
             p("Looking around, you see:")
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="LOOK", loc=active_character.location})))
         
+        -- SEARCH 
+        elseif string.find(lf, "sear") == 1 then 
+            server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SEARCH", loc=active_character.location})))
+
+        -- TALK 
+        elseif string.find(lf, "talk") == 1 then 
+            server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="TALK", loc=active_character.location})))
+
+
         -- SAY 
-        elseif string.find(string.lower(f), "say ") == 1 or string.sub(f, 1, 1) == "\"" then 
+        elseif string.find(lf, "say ") == 1 or string.sub(f, 1, 1) == "\"" then 
             local d = ""
-            if string.find(string.lower(f), "say ") == 1 then 
+            if string.find(lf, "say ") == 1 then 
                 d = string.sub(f, 5, #f)
             else -- "
                 d = string.sub(f, 2, #f)
@@ -70,7 +79,7 @@ function parse_input(f)
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd="SAY", txt=d})))
 
         -- USE (generic)
-        elseif string.find(string.lower(f), "use") == 1 then 
+        elseif string.find(lf, "use") == 1 then 
             local d = string.sub(f, 5, #f) 
 
             local used = false

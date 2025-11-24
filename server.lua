@@ -1,8 +1,9 @@
 require "enet" 
-local json = require "json"
-local sqlite = require 'sqlite'
-local sha = require("sha2")
-dofile("src/arr.lua")
+ json = require "json"
+ sqlite = require 'sqlite'
+ sha = require("sha2")
+
+ dofile("src/arr.lua")
 dofile("src/sleep.lua")
 dofile("src/enums.lua")
 dofile("src/packets.lua")
@@ -30,7 +31,6 @@ if MY_DB_KEY == nil then
 	print("db_key not found. quitting")
 	quit()
 end
-
 -- VERYFIY MONSTER DB 
 dofile("src/monster.lua")
 ct = 0
@@ -38,7 +38,6 @@ for k,v in pairs(Monster_DB)do
 	ct = ct + 1
 end
 print(ct .. " monsters loaded (of 674 expected).")
-
 -- VERIFY ITEM DB 
 dofile("src/item.lua")
 ct = 0
@@ -46,16 +45,17 @@ for k,v in pairs(Treasure_DB)do
 	ct = ct + 1
 end
 print(ct .. " treasures loaded.")
-
 local db = nil 
 character_db = {}
 active_clients = {}
 
 math.randomseed(os.time())
 
+-- SETUP SCENARIO 
 GAME_MAP={}
--- test loc 
-dofile("scenario.lua")
+
+load_scenario("scenario.lua")
+--
 
 local second_timer = os.time()
 local second_timer_2 = os.time()
@@ -120,11 +120,35 @@ function process_login(p)
 	return false 
 end
 
+function broadcast(s)
+	for k,v in pairs(active_clients) do 
+		active_clients[k].peer:send(json.encode(MessagePacket:new({msg=s})))
+	end
+end
+
 function send_to_room(_ri, _s)
 	for i=1,#GAME_MAP[_ri].current_players do 
 		print(active_clients[GAME_MAP[_ri].current_players[i]].peer)
 		active_clients[GAME_MAP[_ri].current_players[i]].peer:send(json.encode(MessagePacket:new({msg=_s})))
 	end
+end
+
+function process_search_timeouts(dT)
+-- might as well process search timeout here 
+	for k,v in pairs(active_clients) do 
+		local _ch = active_clients[k].current_character
+		local to_dl = {}
+		for _r=1,#_ch.searched_rooms do 
+			_ch.searched_rooms[_r][2] = _ch.searched_rooms[_r][2] - 0.1 + dT
+			if _ch.searched_rooms[_r][2] <= 0 then 
+				table.insert(to_dl, _r)
+			end
+		end
+		for _i=1,#to_dl do 
+			arr_remove_i(_ch.searched_rooms, to_dl[_i])
+		end
+	end
+	-- 
 end
 
 function process_event_queues()
@@ -134,12 +158,17 @@ function process_event_queues()
 		second_timer = second_timer + 0.1 - _elapsed
 		second_timer_2 = second_timer_2 + 0.1 - _elapsed
 		second_timer_3 = second_timer_3 + 0.1 - _elapsed
+		
 	end
 	_elapsed = 0.1
 	local to_dl = {}
 	for i=1,#event_queue do 
 		if event_queue[i] ~= nil then 
+
 			event_queue[i].timer = event_queue[i].timer - _elapsed 
+			
+			process_search_timeouts(_elapsed)
+
 			local evt = event_queue[i]
 			if event_queue[i].timer <= 0 then 
 				if evt.type == "combat_round" then 
@@ -247,6 +276,24 @@ function process_event_queues()
 					refresh_mob(GAME_MAP[evt.tgt].active_mobs[evt.src]) 
 					send_to_room(evt.tgt, GAME_MAP[evt.tgt].mobs[evt.src].name .. " appears.")
 					table.insert(to_dl, i)
+
+				elseif evt.type == "message_room" then 
+				-- MESSAGE ENTIRE ROOM 
+				--
+					send_to_room(evt.tgt, evt.msg)
+					table.insert(to_dl, i)
+
+				elseif evt.type == "message_all" then 
+				-- BROADCAST
+				--
+					broadcast(evt.msg)
+					table.insert(to_dl, i)
+
+				elseif evt.type == "message" then 
+				-- msg single 
+					active_clients[evt.tgt].peer:send(json.encode(MessagePacket:new({msg=evt.msg})))
+					table.insert(to_dl, i)
+
 				end
 			end
 		end -- ~= nil 
@@ -287,6 +334,7 @@ function process_status_effects()
 		end
 	end
 	-- gotta do these for players too 
+	-- TODO 
 end
 
 function logout_inactive(uid)
@@ -394,12 +442,13 @@ while 1 do
 							--table.insert(_tc.feats, FEATS.DecoyAttackI)
 							active_clients[pak.uid].current_character = _tc -- assign to client object 
 							table.insert(GAME_MAP[_tc.location].current_players, pak.uid)
+							--GAME_MAP[_tc.location].talk(pak.uid) -- < example 
 							e.peer:send(json.encode(MessagePacket:new({msg="Welcome back!\nYour primary character has been loaded."})))
 							e.peer:send(json.encode(_tc.to_blob()))
 							e.peer:send(json.encode(GAME_MAP[_tc.location].make_packet()))
 						else 
 							-- for now make a new random 
-							_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(1000) } )
+							_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(999) } )
 							active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
 							table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
 							e.peer:send(json.encode(MessagePacket:new({msg="Welcome!\nA new character has been created for you."})))
@@ -469,7 +518,7 @@ while 1 do
 						e.peer:send(json.encode(active_clients[pak.uid].current_character.to_blob()))
 				
 
-					elseif pak.cmd == "HEALME" then 
+					elseif pak.cmd == "HEALME" then -- CHEAT 
 						active_clients[pak.uid].current_character.cur_hp = active_clients[pak.uid].current_character.hp
 						active_clients[pak.uid].current_character.cur_mp = active_clients[pak.uid].current_character.mp
 						e.peer:send(json.encode(MessagePacket:new({msg="Okay, you're fully healed."})))
@@ -477,6 +526,33 @@ while 1 do
 						local _p = active_clients[pak.uid].current_character.to_blob()
 						_p.type = "CHARACTER_UPDATE"
 						e.peer:send(json.encode(_p))
+
+					elseif pak.cmd == "SEARCH" then 
+						-- TEMP TODO get correct formula besides alv + int 
+						local _char = active_clients[pak.uid].current_character
+						local _ok = true 
+						for _r=1,#_char.searched_rooms do 
+							if _char.searched_rooms[_r][1] == pak.loc then 
+								e.peer:send(json.encode(MessagePacket:new({msg="You have to wait before searching here again."})))
+								_ok = false 
+								break
+							end
+						end
+						if _ok then 
+							local _src = get_mod(_char.int) + _char.alv
+							if tot(roll(2, 6, _src)) >= GAME_MAP[pak.loc].search[1] then 
+								GAME_MAP[pak.loc].search[2](pak.uid)
+								
+							else 
+								e.peer:send(json.encode(MessagePacket:new({msg="You don't find anything interesting."})))
+								table.insert(_char.searched_rooms, { pak.loc, 60 })
+							end
+						end
+						
+
+					elseif pak.cmd == "TALK" then 
+						GAME_MAP[pak.loc].talk(pak.uid)
+
 
 					else 
 					-- ??? 
