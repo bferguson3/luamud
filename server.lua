@@ -16,6 +16,7 @@ dofile("src/roll.lua")
 dofile("src/c_statuseffect.lua")
 dofile("src/monster.lua")
 dofile("src/item.lua")
+dofile("src/feat.lua")
 dofile("db/monster_db.lua")
 dofile("db/item_db.lua")
 dofile("db/treasure_db.lua")
@@ -359,6 +360,33 @@ function logout_user(uid)
 		login_count = login_count - 1
 	end
 end
+
+
+Event={}
+function Event:new(o)
+    local o = o or {}
+    setmetatable(o, self)
+    self.__index = self 
+    --
+	self.type = o.type or "none"
+	self.details = o.details or {}
+    return o
+end
+
+-- { type="combat_round", src=pak.uid, tgt=pak.tgt, action=ACTIONS.STD_ATTACK, timer=1 }
+-- { type = "message", tgt=num, msg=""}
+function new_user_messages(uid)
+	local NEWMSG1 = " \nWelcome to the game!\n \nSome basic commands are:\n SAY, LOOK, SEARCH, TALK, USE, ATTACK, STATUS, HEALME, QUIT or EXIT\n ESCAPE, and NORTH, S, NW, UP etc. to move between rooms."
+	local NEWMSG2 = " \nTo attack an enemy, type e.g. 'att goblin' or 'attack 2'.\nTo enable or disable a feat, try e.g. 'USE DECOY ATTACK'.\nFor now, 'HEALME' is a cheat that will fully heal your HP and MP."
+	local NEWMSG3 = " \nIf you aren't sure what to do first, try\ntyping 'TALK' to talk to the bartender and begin the tutorial."
+
+	table.insert(event_queue, {type="message", tgt=uid, msg=NEWMSG1, timer=0})
+	table.insert(event_queue, {type="message", tgt=uid, msg=NEWMSG2, timer=5})
+	table.insert(event_queue, {type="message", tgt=uid, msg=NEWMSG3, timer=10})
+
+end
+
+
 --
 -- MAIN SERVER LOOP
 --
@@ -442,15 +470,16 @@ while 1 do
 							--table.insert(_tc.feats, FEATS.DecoyAttackI)
 							active_clients[pak.uid].current_character = _tc -- assign to client object 
 							table.insert(GAME_MAP[_tc.location].current_players, pak.uid)
-							--GAME_MAP[_tc.location].talk(pak.uid) -- < example 
+							
 							e.peer:send(json.encode(MessagePacket:new({msg="Welcome back!\nYour primary character has been loaded."})))
 							e.peer:send(json.encode(_tc.to_blob()))
 							e.peer:send(json.encode(GAME_MAP[_tc.location].make_packet()))
 						else 
 							-- for now make a new random 
-							_new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(999) } )
+							local _new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(999) } )
 							active_clients[pak.uid].current_character=_new -- this will preserve the reference? 
 							table.insert(GAME_MAP[1].current_players, pak.uid) -- add player to the map room start
+							new_user_messages(pak.uid)
 							e.peer:send(json.encode(MessagePacket:new({msg="Welcome!\nA new character has been created for you."})))
 							e.peer:send(json.encode(_new.to_blob()))
 							e.peer:send(json.encode(GAME_MAP[_new.location].make_packet())) -- and send the player the room dat
@@ -459,6 +488,7 @@ while 1 do
 					end
 				else 
 					print("Login failed for user ", e.peer)
+					e.peer:send(json.encode(DisconnectPacket:new({msg="Login failed! Ctrl+C to quit."})))
 				end
 
 			elseif pak.type == "COMMAND" then 
@@ -476,12 +506,12 @@ while 1 do
 					local _char = active_clients[pak.uid].current_character 
 					print("user " , active_clients[pak.uid].peer , " used command " .. pak.cmd)
 
-					if pak.cmd == "LOOK" then 
+					if pak.cmd == COMMANDS.Look then 
 					-- LOOK COMMAND 
 						-- take "loc" and use it as the index 
 						e.peer:send(json.encode(GAME_MAP[pak.loc].make_packet()))
 
-					elseif pak.cmd == "ATTACK" then 
+					elseif pak.cmd == COMMANDS.Attack then 
 					-- ATTACK COMMAND 
 						-- loc is game map index -- tgt is enemy index 
 						if(_char.state ~= STATE.IN_COMBAT)then
@@ -496,7 +526,7 @@ while 1 do
 							-- TODO : change target if needed?
 						end
 
-					elseif pak.cmd == "SAY" then
+					elseif pak.cmd == COMMANDS.Say then
 						-- Remove all chars < 0x20 and > 0x7f
 						for c=1,#pak.txt do  -- this ignores antyhing 0x80 for some reason. negative? 
 							--print(string.byte(string.sub(pak.txt, c, c)))
@@ -506,19 +536,19 @@ while 1 do
 						end
 						send_to_room(1, active_clients[pak.uid].current_character.name .. " says, \"" .. pak.txt .. "\"")
 
-					elseif pak.cmd == "USE" then 
+					elseif pak.cmd == COMMANDS.Use then 
 						print(pak.txt)
 
 						-- first check if decoy is on 
 						CheckDecoyAttack(pak, e)
 						
 						---
-					elseif pak.cmd == "GET_STATUS"then 
+					elseif pak.cmd == COMMANDS.GetStatus then 
 						print(pak.uid .. " request char status.")
 						e.peer:send(json.encode(active_clients[pak.uid].current_character.to_blob()))
 				
 
-					elseif pak.cmd == "HEALME" then -- CHEAT 
+					elseif pak.cmd == COMMANDS.HealMe then -- CHEAT 
 						active_clients[pak.uid].current_character.cur_hp = active_clients[pak.uid].current_character.hp
 						active_clients[pak.uid].current_character.cur_mp = active_clients[pak.uid].current_character.mp
 						e.peer:send(json.encode(MessagePacket:new({msg="Okay, you're fully healed."})))
@@ -527,7 +557,7 @@ while 1 do
 						_p.type = "CHARACTER_UPDATE"
 						e.peer:send(json.encode(_p))
 
-					elseif pak.cmd == "SEARCH" then 
+					elseif pak.cmd == COMMANDS.Search then 
 						-- TEMP TODO get correct formula besides alv + int 
 						local _char = active_clients[pak.uid].current_character
 						local _ok = true 
@@ -550,7 +580,7 @@ while 1 do
 						end
 						
 
-					elseif pak.cmd == "TALK" then 
+					elseif pak.cmd == COMMANDS.Talk then 
 						GAME_MAP[pak.loc].talk(pak.uid)
 
 

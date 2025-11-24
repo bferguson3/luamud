@@ -5,11 +5,6 @@ STATE = { -- ONLY USE THIS FOR COMBAT FLAG !!!!
 	IN_COMBAT = 1
 }
 
-FEATS = { 
-	DecoyAttackI = 1,
-	DecoyAttackII = 2
-}
-
 function get_class_string(en)
 	if en == SKILLS.CONJURER then return "Conjurer"
 	elseif en == SKILLS.FENDER then return "Fencer" 
@@ -24,19 +19,6 @@ function get_class_string(en)
 	elseif en == SKILLS.SORCERER then return "Sorcerer"
 	end
 end
-
-Feat={}
-function Feat:new(o)
-	local o = o or {}
-	setmetatable(o, self)
-	self.__index = self 
-	-- 
-	o.desc = o.desc or ""
-	return o 
-end
-Feat_DB={}
-Feat_DB[FEATS.DecoyAttackI]=Feat:new({desc="Passive. -2 to accuracy, +2 to damage. Enemy takes -1 (stacks to -4) evade on miss for 10s."})
-Feat_DB[FEATS.DecoyAttackII]=Feat:new({desc="Passive. -2 to accuracy, +8 to damage. Enemy takes -2 (stacks to -8) evade on miss for 10s."})
 
 Character={} -- class Character
 -- These are pulled from a SQLiteDB querying by user "owner" 
@@ -115,6 +97,7 @@ function Character:new(o)
 	o.status_mods = o.status_mods or { }
 	o.experience = o.experience or 0 
 	o.searched_rooms = o.searched_rooms or {}--{ {0, 59} } -- i searched room zero 1 second ago 
+	o.scenario_flags = o.scenario_flags or {}
 
 	o.get_level = function(sk)
 		for i=1,#o.classes do
@@ -126,6 +109,7 @@ function Character:new(o)
 	end	
 
 	o.p_status = function()
+		p("> STATUS")
 		p("Name: " .. o.name .. "     Player: ".. o.user)
 		p(" ALV: " .. o.alv .. "     Race: " .. o.race)
 		p(" Skill [" .. o.skill .. "]  Body [" .. o.body .. "]  Mind [" .. o.mind .. "]" )
@@ -280,7 +264,6 @@ function Character:new(o)
 		o.location = b.location
 		o.alv = b.alv
 		o.age = b.age 
-		o.eqp_weapon = EQUIPMENT.Knife
 		o.classes={}
 		local tc = {}
 		for num in b.classes:gmatch("%d+")do 
@@ -322,10 +305,17 @@ function Character:new(o)
 			table.insert(o.eqp_bag, tonumber(num))
 		end
 		o.derive()
-		-- todo 
--- eqp_armor	0
--- eqp_shield	0
--- eqp_accessory	[0,0,0,0,0,0,0,0,0]
+		o.eqp_weapon = b.eqp_weapon 
+		o.eqp_armor = b.eqp_armor 
+		o.eqp_shield = b.eqp_shield 
+		o.eqp_accessory = {}
+		for num in b.eqp_accessory:gmatch("%d+")do
+			table.insert(o.eqp_accessory, tonumber(num))
+		end
+		o.scenario_flags = {}
+		for num in b.flags:gmatch("%d+")do 
+			table.insert(o.flags, { tonumber(num), 0 })
+		end
 	end
 	return o 
 end
@@ -362,7 +352,7 @@ function create_char_sqlstr(o)
 	
 	local _s = "INSERT OR REPLACE INTO character_database (name, user, alv, classes, race, a, b, c, d, e, f, skill, body, mind, growth, fortitude, willpower, spoken_lang, written_lang, \
 feats, hp, cur_hp, mp, cur_mp, scars, gender, age, location, inventory, eqp_bag, eqp_weapon, eqp_armor, eqp_shield, \
-eqp_accessory, experience)\
+eqp_accessory, flags, experience)\
 VALUES (\
 '" .. o.name .. "',\
 '" .. o.user .. "',\
@@ -437,6 +427,12 @@ VALUES (\
         _s = _s .. o.eqp_accessory[i] .. ','
     end
     _s = _s:sub(1, #_s-1)
+    _s = _s .. "]',\
+'["
+    for i=1,#o.scenario_flags do 
+        _s = _s .. o.scenario_flags[i] .. ','
+    end
+	_s = _s:sub(1, #_s-1)
     _s = _s .. "]',\
 " .. o.experience .. ")"
 	

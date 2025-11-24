@@ -161,3 +161,30 @@ GAMESTATE={
     GET_PASS = 5,
 	QUIT = 6
 }
+
+
+COMMANDS = { 
+	Look = "LOOK",
+	Attack = "ATTACK",
+	Say = "SAY",
+	Use = "USE", 
+	GetStatus = "GET_STATUS", 
+	HealMe = "HEALME", 
+	Search = "SEARCH",
+	Talk = "TALK",
+	Quit = "QUIT",
+	Exit = "EXIT"
+}
+
+CMD_DESCRIPTIONS = { 
+	[COMMANDS.Look] = "Displays the current room description, and whatever else is here.",
+	[COMMANDS.Attack] = "Attacks the target, given by either a target's name e.g. Goblin,\n shortened name e.g. gob, or number e.g. 1.",
+	[COMMANDS.Say] = "Chats to the local room. \" is a shortcut e.g. \"heya!",
+	[COMMANDS.Use] = "Contextually use the target, e.g. USE DECOY ATTACK or USE SWITCH",
+	[COMMANDS.GetStatus] = "Displays your character's status screen.",
+	[COMMANDS.HealMe] = "Fully heals you, ya big cheater.",
+	[COMMANDS.Search] = "Searches the current room. Uses a die check to determine success.\n On a failure, you have to wait 60 seconds to try again.",
+	[COMMANDS.Talk] = "Activates the NPC in the current area.",
+	[COMMANDS.Exit] = "Exits the game. See Quit.",
+	[COMMANDS.Quit] = "Quits the game. See Exit.",
+}

@@ -64,8 +64,8 @@ function Location:new(o)
 			end
 		end
 		p.exits={}
-		for i=1,#o.exits do 
-			if o.exits[i] ~= nil then 
+		for i=1,10 do 
+			if o.exits[i] then 
 				p.exits[i]=1
 			else 
 				p.exits[i]=0

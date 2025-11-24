@@ -52,6 +52,7 @@ db:execute("CREATE TABLE character_database (\
 	eqp_armor INTEGER,\
 	eqp_shield INTEGER,\
 	eqp_accessory TEXT,\
+	flags TEXT,\
 	experience INTEGER \
 );")
 db:close()
