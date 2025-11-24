@@ -348,7 +348,7 @@ end
 
 function logout_user(uid)	
 	if(active_clients[uid])then
-		active_clients[uid].peer:send(json.encode(DisconnectPacket:new({msg="You have been disconnected."})))
+		active_clients[uid].peer:send(json.encode(DisconnectPacket:new({msg=""})))
 		local _t = GAME_MAP[active_clients[uid].current_character.location].current_players
 		for i=1,#_t do 
 			if _t[i] == uid then 
@@ -444,7 +444,7 @@ while 1 do
 					for k,v in pairs(active_clients) do -- check if someone's login already exists. 
 						if active_clients[k].login == pak.login then -- do we already exist? 
 							if os.time() - active_clients[k].last_active < LOGOUT_LIMIT_TMR then 
-								e.peer:send(json.encode(DisconnectPacket:new({msg="You did not log out successfully!\nYou need to wait ".. tostring(LOGOUT_LIMIT_TMR - (os.time() - active_clients[k].last_active)) .." seconds before you are fully logged out.\nQuitting..."})))
+								e.peer:send(json.encode(DisconnectPacket:new({msg="You did not log out successfully!\nYou need to wait ".. tostring(LOGOUT_LIMIT_TMR - (os.time() - active_clients[k].last_active)) .." seconds before you are fully logged out.\nUse Ctrl+C to quit..."})))
 								ignore_login = true 
 							else 
 								logout_user(k)
@@ -469,11 +469,13 @@ while 1 do
 							--db:execute(create_char_sqlstr(_tc))
 							--table.insert(_tc.feats, FEATS.DecoyAttackI)
 							active_clients[pak.uid].current_character = _tc -- assign to client object 
-							table.insert(GAME_MAP[_tc.location].current_players, pak.uid)
-							
 							e.peer:send(json.encode(MessagePacket:new({msg="Welcome back!\nYour primary character has been loaded."})))
 							e.peer:send(json.encode(_tc.to_blob()))
-							e.peer:send(json.encode(GAME_MAP[_tc.location].make_packet()))
+
+							table.insert(GAME_MAP[_tc.location].current_players, pak.uid)
+							local _rm = GAME_MAP[_tc.location].make_packet()
+							_rm.index = _tc.location
+							e.peer:send(json.encode(_rm))
 						else 
 							-- for now make a new random 
 							local _new = Character:new( { user=pak.login, body=7, mind=7, skill=7, a=tot(roll(2)), b=tot(roll(2)), c=tot(roll(2)), d=tot(roll(2)), e=tot(roll(2)), f=tot(roll(2)), name="Temp"..math.random(999) } )
@@ -506,10 +508,12 @@ while 1 do
 					local _char = active_clients[pak.uid].current_character 
 					print("user " , active_clients[pak.uid].peer , " used command " .. pak.cmd)
 
+
 					if pak.cmd == COMMANDS.Look then 
 					-- LOOK COMMAND 
 						-- take "loc" and use it as the index 
 						e.peer:send(json.encode(GAME_MAP[pak.loc].make_packet()))
+
 
 					elseif pak.cmd == COMMANDS.Attack then 
 					-- ATTACK COMMAND 
@@ -526,7 +530,9 @@ while 1 do
 							-- TODO : change target if needed?
 						end
 
+
 					elseif pak.cmd == COMMANDS.Say then
+						-- Local chat 
 						-- Remove all chars < 0x20 and > 0x7f
 						for c=1,#pak.txt do  -- this ignores antyhing 0x80 for some reason. negative? 
 							--print(string.byte(string.sub(pak.txt, c, c)))
@@ -534,21 +540,24 @@ while 1 do
 								pak.txt = string.sub(pak.txt, 1, c) .. string.sub(pak.txt, c+1, #pak.txt)
 							end
 						end
-						send_to_room(1, active_clients[pak.uid].current_character.name .. " says, \"" .. pak.txt .. "\"")
+						send_to_room(active_clients[pak.uid].current_character.location, active_clients[pak.uid].current_character.name .. " says, \"" .. pak.txt .. "\"")
+
 
 					elseif pak.cmd == COMMANDS.Use then 
-						print(pak.txt)
-
+						-- Generic 
+						
 						-- first check if decoy is on 
 						CheckDecoyAttack(pak, e)
 						
+
 						---
-					elseif pak.cmd == COMMANDS.GetStatus then 
+					elseif pak.cmd == COMMANDS.GetStatus then -- print stat block 
 						print(pak.uid .. " request char status.")
 						e.peer:send(json.encode(active_clients[pak.uid].current_character.to_blob()))
 				
 
-					elseif pak.cmd == COMMANDS.HealMe then -- CHEAT 
+
+					elseif pak.cmd == COMMANDS.HealMe then -- CHEAT !
 						active_clients[pak.uid].current_character.cur_hp = active_clients[pak.uid].current_character.hp
 						active_clients[pak.uid].current_character.cur_mp = active_clients[pak.uid].current_character.mp
 						e.peer:send(json.encode(MessagePacket:new({msg="Okay, you're fully healed."})))
@@ -556,6 +565,7 @@ while 1 do
 						local _p = active_clients[pak.uid].current_character.to_blob()
 						_p.type = "CHARACTER_UPDATE"
 						e.peer:send(json.encode(_p))
+
 
 					elseif pak.cmd == COMMANDS.Search then 
 						-- TEMP TODO get correct formula besides alv + int 
@@ -573,7 +583,7 @@ while 1 do
 							if tot(roll(2, 6, _src)) >= GAME_MAP[pak.loc].search[1] then 
 								GAME_MAP[pak.loc].search[2](pak.uid)
 								
-							else 
+							else -- Failed, so add a 60s cooldown timer for this room 
 								e.peer:send(json.encode(MessagePacket:new({msg="You don't find anything interesting."})))
 								table.insert(_char.searched_rooms, { pak.loc, 60 })
 							end
@@ -581,9 +591,40 @@ while 1 do
 						
 
 					elseif pak.cmd == COMMANDS.Talk then 
+					-- Activate local NPC 
 						GAME_MAP[pak.loc].talk(pak.uid)
 
 
+					elseif pak.cmd == COMMANDS.Move then 
+					-- MOVE 
+						if pak.src ~= active_clients[pak.uid].current_character.location then 
+							pak.src = active_clients[pak.uid].current_character.location 
+						end
+						--print(pak.src .. " " .. pak.dir .. " ")
+						--for i=1,#GAME_MAP[pak.src].exits do 
+						--	print(GAME_MAP[pak.src].exits[i])
+						--end
+						--print(GAME_MAP[pak.src].exits[pak.dir] .. "  " .. pak.dir)
+						if active_clients[pak.uid].current_character.state == STATE.IN_COMBAT then 
+							e.peer:send(json.encode(MessagePacket:new({msg="You can't move, you're in combat!"})))
+
+						else
+							-- OK , move
+							if GAME_MAP[pak.src].exits[pak.dir] then 
+								local _t = GAME_MAP[pak.src].exits[pak.dir]
+
+								active_clients[pak.uid].current_character.location = _t -- move char
+								
+								arr_remove(GAME_MAP[pak.src].current_players, pak.uid) -- remove 
+								table.insert(GAME_MAP[_t].current_players, pak.uid) -- add to new loc
+								local _rm = GAME_MAP[_t].make_packet()
+								_rm.index = _t
+								e.peer:send(json.encode(_rm)) -- send room info 
+							else
+								e.peer:send(json.encode(MessagePacket:new({msg="... but you can't go that way!"})))
+							end
+
+						end
 					else 
 					-- ??? 
 						for k,v in pairs(pak) do 
@@ -625,17 +666,17 @@ while 1 do
 		elseif e.type == "disconnect" then 
 			--
 			print("user " .. e.peer:connect_id() .. " disconnected.")
-			local _u = nil
-			for k,v in pairs(active_clients)do 
-				if active_clients[k].peer == e.peer then 
-					_u = k 
-					break
-				end
-			end
-			if _u ~= nil then 
-				logout_user(_u) 
-				print("logged out user: " .. _u)
-			end 
+			-- local _u = nil
+			-- for k,v in pairs(active_clients)do 
+			-- 	if active_clients[k].peer == e.peer then 
+			-- 		_u = k 
+			-- 		break
+			-- 	end
+			-- end
+			-- if _u ~= nil then 
+			-- 	logout_user(_u) 
+			-- 	print("logged out user: " .. _u)
+			-- end 
 		else
 			print("Unhandled packet type: " .. e.type)
 

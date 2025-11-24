@@ -30,3 +30,14 @@ in with a friendly-ish stare.",
 	}
 )
 
+GAME_MAP[2] = Location:new({
+	name="%r999Raxia Graveyard%rfff",
+	shortdesc = "An abandonded, overgrown graveyard.",
+	desc ="A chilling mist hangs in the air. Leafless trees are scattered\
+about the barren park, punctuated with the occasional\
+odd cracked gravestone. There are a number of open graves...",
+	mobs ={
+		Monster_DB.ZombieDog
+	},
+	exits = { [EXITS.N] = 1 }
+})

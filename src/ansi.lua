@@ -31,6 +31,8 @@ end
 function color_hex(s)
 	if s == 'ff0' then 
 		io.write(BRK .. CLR .. ansi_colors.BRYELLOW .. "m")
+	elseif s == '770' then 
+		io.write(BRK .. CLR .. ansi_colors.YELLOW .. "m")
 	elseif s == '00f' then 
 		io.write(BRK .. CLR .. ansi_colors.BLUE .. "m")
 	elseif s == '77f' then 

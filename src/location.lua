@@ -28,16 +28,7 @@ function Location:new(o)
 	o.mobs = o.mobs or {}
 	o.active_mobs = o.active_mobs or {}
 	o.exits = o.exits or { 
-		[EXITS.N] = nil,
-		[EXITS.S] = nil,
-		[EXITS.E] = nil,
-		[EXITS.W] = nil,
-		[EXITS.NE] = nil,
-		[EXITS.SE] = nil,
-		[EXITS.NW] = nil,
-		[EXITS.SW] = nil,
-		[EXITS.U] = nil,
-		[EXITS.D] = nil
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	}
 	-- not shared in packet: 
 	o.search = o.search or { 2, search_func } -- { SEARCH_TARGET_NUM, SEARCH_SUCCESS_FUNCTION }
@@ -52,6 +43,7 @@ function Location:new(o)
 		p.shortdesc=o.shortdesc
 		p.desc=o.desc
 		p.mobs={}
+		p.index = o.index or 1
 		p.current_players={}
 		for i=1,#o.current_players do 
 			table.insert(p.current_players, active_clients[o.current_players[i]].current_character.name)

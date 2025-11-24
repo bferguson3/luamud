@@ -1,5 +1,6 @@
 -- love2d headless client 
 local lg = love.graphics 
+love.errorhandler = nil -- print and quit only 
 dofile = function(s) love.filesystem.load(s)() end
 
  sha = require("sha2")

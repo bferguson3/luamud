@@ -4,11 +4,16 @@ function parse_input(f)
     if CURRENT_GAME_STATE==GAMESTATE.NORMAL_GAME then 
     -- COMMAND INPUT PROCESSING 
     -- 
+        if string.find(lf, "move ") == 1 then -- we just ignore it :)
+            f = string.sub(f, 6, #f)
+            lf = string.lower(f)
+        end
+
         -- ATTACK COMMAND 
-        if string.find(f, "att") == 1 then 
+        if string.find(lf, "att") == 1 then 
             local tgt = ""
             local tgt_i = 0
-            for k,v in pairs(local_enemies) do 
+            for k,v in pairs(local_enemies) do  -- try to find it intelligently by name 
                 for token in string.gmatch(f, "[^%s]+") do 
                     if tonumber(token) then 
                         tgt = local_enemies[tonumber(token)]
@@ -31,41 +36,86 @@ function parse_input(f)
                 end
             end
             if tgt ~= nil then 
-                --p(tgt.name)
                 p("You attack " .. tgt.name .. "!")
                 server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.Attack, loc=active_character.location, tgt=tgt_i})))
             else
                 p("No target!")
             end
 		
+
+        -- STATUS 
 		elseif(string.find(lf, "stat") == 1) then 
 			server:send(json.encode(CommandPacket:new({cmd=COMMANDS.GetStatus,uid=my_uid})))
+
+
 
 		-- exit_quit 
 		elseif(string.find(lf, "exit") == 1) then 
 			server:send(json.encode({type="LOGOUT",uid=my_uid}))
 			--GAME_DONE = true
-
 		elseif(string.find(lf, "quit") == 1) then 
 			server:send(json.encode({type="LOGOUT",uid=my_uid}))
 			--GAME_DONE = true 
 
+
+
 		-- emergency heal 
 		elseif(string.find(lf, "healme") == 1) then 
 			server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.HealMe})))
+
+
 
         -- LOOK COMMAND 
         elseif string.find(lf, "loo") == 1 or f == "l" then 
             p("Looking around, you see:")
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.Look, loc=active_character.location})))
         
+
+
         -- SEARCH 
         elseif string.find(lf, "sear") == 1 then 
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.Search, loc=active_character.location})))
 
+
+
         -- TALK 
         elseif string.find(lf, "talk") == 1 then 
             server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.Talk, loc=active_character.location})))
+
+
+
+        -- MOVE 
+        elseif lf == "n" or lf == "north" then 
+            p("You move north.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.N})))
+        elseif lf == "s" or lf == "south" then 
+            p("You move south.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.S})))
+        elseif lf == "e" or lf == "east" then 
+            p("You move east.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.E})))
+        elseif lf == "w" or lf == "west" then 
+            p("You move west.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.W})))
+        elseif lf == "u" or lf == "up" then 
+            p("You ascend.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.U})))
+        elseif lf == "d" or lf == "down" then 
+            p("You descend.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.D})))
+        elseif lf == "nw" or lf == "northwest" then 
+            p("You head northwest.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.NW})))
+        elseif lf == "ne" or lf == "northeast" then 
+            p("You head northeast.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.NE})))
+        elseif lf == "sw" or lf == "southwest" then 
+            p("You head southwest.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.SW})))
+        elseif lf == "se" or lf == "southeast" then     
+            p("You head southeast.")
+            server:send(json.encode(CommandPacket:new({uid=my_uid, src=active_character.location, cmd=COMMANDS.Move, dir=EXITS.SE})))
+
 
 
         -- SAY 
@@ -76,7 +126,35 @@ function parse_input(f)
             else -- "
                 d = string.sub(f, 2, #f)
             end
-            server:send(json.encode(CommandPacket:new({uid=my_uid, COMMANDS.Say, txt=d})))
+            server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.Say, txt=d})))
+
+
+        -- HELP 
+        elseif string.find(lf, "help")==1 then 
+            if #lf > 5 then 
+                local b = lf:sub(6,#lf)
+                for k,v in pairs(COMMANDS) do 
+                    if string.find(string.lower(v), b)==1 then 
+                        p("%r770" .. v .. "%rfff")
+                        p(CMD_DESCRIPTIONS[v])
+                        break
+                    end
+                end
+            else
+                local _s = "" 
+                local ct = 0
+                for k,v in pairs(COMMANDS) do 
+                    _s = _s .. v .. ", "
+                    ct = ct + 1
+                    if ct == 6 then 
+                        _s = _s .. "\n "
+                        ct = 0
+                    end
+                end
+                p("The following commands were found:\n " .. _s:sub(1,#_s-2))
+                p(" For more information, try HELP (command), e.g. HELP ATTACK")
+            end
+
 
         -- USE (generic)
         elseif string.find(lf, "use") == 1 then 
@@ -88,11 +166,11 @@ function parse_input(f)
             if string.find(string.lower(d), "decoy") == 1 then 
                 for i=1,#active_character.feats do 
                     if active_character.feats[i] == FEATS.DecoyAttackI then 
-                        server:send(json.encode(CommandPacket:new({uid=my_uid, COMMANDS.Use, txt="Decoy Attack I"})))
+                        server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.Use, txt="Decoy Attack I"})))
                         used = true
                         break
                     elseif active_character.feats[i] == FEATS.DecoyAttackII then  
-                        server:send(json.encode(CommandPacket:new({uid=my_uid, COMMANDS.Use, txt="Decoy Attack II"})))
+                        server:send(json.encode(CommandPacket:new({uid=my_uid, cmd=COMMANDS.Use, txt="Decoy Attack II"})))
                         used = true
                         break
                     end 
@@ -104,6 +182,10 @@ function parse_input(f)
             end
 
         --
+        else 
+            
+            p("I didn't understand that.")
+
         end
     elseif CURRENT_GAME_STATE == GAMESTATE.LOGIN_SCREEN then 
         ip_address = f 
@@ -176,15 +258,18 @@ function process_packet(e)
 	local pak = json.decode(e.data)
 	
 	if pak.type == "CHARACTER_DAT" then 
-		active_character = Character:new({})
+        active_character = Character:new({})
 		active_character.from_blob(pak.character)
 		active_character.p_status()
-	
+        
 	elseif pak.type == "CHARACTER_UPDATE" then  -- Do not print!
+        local _l = active_character.location 
 		active_character = Character:new({})
 		active_character.from_blob(pak.character)
+        active_character.location = _l 
         
     elseif pak.type == "ROOM" then 
+        p(" ")
         p("-[" .. pak.name .. "]-", 'ff7' )
         p(pak.desc)
         local _estr = ""
@@ -199,7 +284,8 @@ function process_packet(e)
         else 
             p("%rafaExits: %r999" .. _estr .. "%rfff")
         end
-        p("You also see:")
+        p(" \nYou also see:")
+        local_enemies = {}
         for k,v in pairs(pak.mobs) do 
             p(k .. " " .. v)
             local_enemies[k] = { name = "" }
@@ -210,6 +296,8 @@ function process_packet(e)
                 p(v .. " %rafa(Player)")
             end
         end
+        p(" ")
+        active_character.location = pak.index 
 
     elseif pak.type == "MESSAGE_COMBAT" then    
         p(pak.msg)

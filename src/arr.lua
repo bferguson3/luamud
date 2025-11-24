@@ -1,3 +1,6 @@
+--- remove from and shift 
+---@param input table
+---@param remove object
 function arr_remove(input, remove)
     local n=#input
     for i=1,n do

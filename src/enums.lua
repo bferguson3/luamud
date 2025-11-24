@@ -168,12 +168,13 @@ COMMANDS = {
 	Attack = "ATTACK",
 	Say = "SAY",
 	Use = "USE", 
-	GetStatus = "GET_STATUS", 
+	GetStatus = "STATUS", 
 	HealMe = "HEALME", 
 	Search = "SEARCH",
 	Talk = "TALK",
 	Quit = "QUIT",
-	Exit = "EXIT"
+	Exit = "EXIT",
+	Move = "MOVE"
 }
 
 CMD_DESCRIPTIONS = { 
@@ -187,4 +188,5 @@ CMD_DESCRIPTIONS = {
 	[COMMANDS.Talk] = "Activates the NPC in the current area.",
 	[COMMANDS.Exit] = "Exits the game. See Quit.",
 	[COMMANDS.Quit] = "Quits the game. See Exit.",
+	[COMMANDS.Move] = "Moves in a direction. You can also use N, S, E, W, NE, NW, SE, SW, U, D,\n or spell them out e.g. 'northeast'. "
 }
