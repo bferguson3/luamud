@@ -13,6 +13,11 @@ dofile("src/location.lua")
 dofile("src/striketable.lua")
 dofile("src/roll.lua")
 dofile("src/c_statuseffect.lua")
+dofile("src/monster.lua")
+dofile("src/item.lua")
+dofile("db/monster_db.lua")
+dofile("db/item_db.lua")
+dofile("db/treasure_db.lua")
 
 -- LOAD DATABASE KEY 
 local MY_DB_KEY = nil
@@ -479,26 +484,34 @@ while 1 do
 						end
 
 					end
-				else 
-					print("error: user " .. pak.uid .. " not logged in, but tried command " .. pak.cmd)
-					e.peer:send(json.encode(MessagePacket:new({msg="You are currently logged out. Please 'quit' and log back in."})))
+				else
+					if not pak.uid then 
+						print("pak has no UID")
+					else
+						print("error: user " .. pak.uid .. " not logged in, but tried command " .. pak.cmd)
+						e.peer:send(json.encode(MessagePacket:new({msg="You are currently logged out. Please 'quit' and log back in."})))
+					end
 				end
 				
 
 			elseif pak.type == "LOGOUT" then 
 			-- LOGOUT PACKET TYPE 
 			-- 
-				print(pak.uid .. " requested logout.")
-				-- pop uid from game map 
-				if (active_clients[pak.uid])then 
-					if active_clients[pak.uid].current_character then 
-						
-						if active_clients[pak.uid].current_character.state == STATE.IN_COMBAT then 
-							e.peer:send(json.encode(MessagePacket:new({msg="You can't quit in combat!"})))
-						else 
-							logout_user(pak.uid)
+				if pak.uid then 
+					print(pak.uid .. " requested logout.")
+					-- pop uid from game map 
+					if (active_clients[pak.uid])then 
+						if active_clients[pak.uid].current_character then 
+							
+							if active_clients[pak.uid].current_character.state == STATE.IN_COMBAT then 
+								e.peer:send(json.encode(MessagePacket:new({msg="You can't quit in combat!"})))
+							else 
+								logout_user(pak.uid)
+							end
 						end
 					end
+				else
+					print("logout requested but uid is missing")
 				end
 			end
 

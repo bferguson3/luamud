@@ -18,4 +18,3 @@ Equipment_DB[EQUIPMENT.ClothArmor] = Equipment:new(
 	}
 )
 
-dofile("db/treasure_db.lua")

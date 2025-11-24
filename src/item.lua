@@ -83,5 +83,3 @@ function LootTable:new(o)
 	}
 	return o 
 end
-
-dofile("db/item_db.lua")

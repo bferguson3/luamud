@@ -178,4 +178,3 @@ function Monster:new(o)
     return o
 end
 
-dofile("db/monster_db.lua")
