@@ -1,6 +1,8 @@
 -- love2d headless client 
 local lg = love.graphics 
-love.errorhandler = nil -- print and quit only 
+love.errorhandler = function(s)
+    print("\nAn error has occurred and the application will now close:\n"..s.."\n")
+end -- print and quit only 
 dofile = function(s) love.filesystem.load(s)() end
 
  sha = require("sha2")
@@ -205,7 +207,7 @@ function love.update(dt)
     -- DRAW
     --
     -- ACTUAL SCREEN DRAW 
-	if(actual_timer - time_since_last_key > 0.5)then
+	if(actual_timer - time_since_last_key > 0.25)then
 		update_screen = true 
 		time_since_last_key = actual_timer
 	end

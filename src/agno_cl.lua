@@ -196,7 +196,6 @@ function parse_input(f)
         else
 			e = host:service(250)
             if(e)then
-				print("service ok ")
                 if e.type=="connect"then 
                     p("Connected: " .. tostring(e.peer:connect_id()), '7f7', false)
                     p("Enter your user name. (If it does not exist, it will be created.)")
