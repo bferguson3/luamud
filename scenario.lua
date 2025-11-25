@@ -16,15 +16,15 @@ in with a friendly-ish stare.",
 	talk = function(uid)
 		table.insert(event_queue,{ type="message", 
 			tgt=uid, 
-			msg="The barkeep waves you over. \"New adventurer, huh? Guess I could give you some\nadvice. Type 'help' to list commands.\"", 
+			msg="TALK TO BARTENDER\nThe barkeep waves you over. \"New adventurer, huh? Guess I could give you some\nadvice. Type 'help' to list commands.\"", 
 			timer=0 } )
 		table.insert(event_queue,{ type="message", 
 			tgt=uid, 
-			msg="Barkeep \"First thing you gotta do is type 'stats' to view your status.\n Cool, right? Keep an eye on your equipment.\"", 
+			msg=" \nBarkeep \"First thing you gotta do is type 'stats' to view your status.\n Cool, right? Keep an eye on your equipment.\"", 
 			timer=3 } )
 		table.insert(event_queue,{ type="message", 
 			tgt=uid, 
-			msg="Barkeep \"When you're ready, head 'south' to the graveyard.\"", 
+			msg=" \nBarkeep \"When you're ready, head 'south' to the graveyard.\"", 
 			timer=6 } )
 	end
 	}

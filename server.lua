@@ -129,8 +129,10 @@ end
 
 function send_to_room(_ri, _s)
 	for i=1,#GAME_MAP[_ri].current_players do 
-		print(active_clients[GAME_MAP[_ri].current_players[i]].peer)
-		active_clients[GAME_MAP[_ri].current_players[i]].peer:send(json.encode(MessagePacket:new({msg=_s})))
+		--print(active_clients[GAME_MAP[_ri].current_players[i]].peer)
+		if active_clients[GAME_MAP[_ri].current_players[i]] then 
+			active_clients[GAME_MAP[_ri].current_players[i]].peer:send(json.encode(MessagePacket:new({msg=_s})))
+		end
 	end
 end
 
@@ -292,9 +294,10 @@ function process_event_queues()
 
 				elseif evt.type == "message" then 
 				-- msg single 
-					active_clients[evt.tgt].peer:send(json.encode(MessagePacket:new({msg=evt.msg})))
-					table.insert(to_dl, i)
-
+					if(active_clients[evt.tgt])then
+						active_clients[evt.tgt].peer:send(json.encode(MessagePacket:new({msg=evt.msg})))
+						table.insert(to_dl, i)
+					end
 				end
 			end
 		end -- ~= nil 
@@ -506,7 +509,7 @@ while 1 do
 
 					active_clients[pak.uid].last_active = os.time() -- update time 
 					local _char = active_clients[pak.uid].current_character 
-					print("user " , active_clients[pak.uid].peer , " used command " .. pak.cmd)
+					print("user " , active_clients[pak.uid].peer , " used command " .. pak.cmd .. " from location " .. active_clients[pak.uid].current_character.location)
 
 
 					if pak.cmd == COMMANDS.Look then 
